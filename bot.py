@@ -1,51 +1,26 @@
 import os
 import psutil
-import time
-from datetime import datetime, timedelta
+import shutil
+import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackContext
+from rich.progress import Progress
+from rich.console import Console
+from rich.table import Table
 
-TOKEN = "6438781804:AAGvcF5pp2gg2Svr5f0kpxvG9ZMoiG1WACc"
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+console = Console()
 
-# Convert boot time to readable uptime
-def get_uptime():
-    boot_time = datetime.fromtimestamp(psutil.boot_time())
-    now = datetime.now()
-    uptime = now - boot_time
-    return str(timedelta(seconds=uptime.total_seconds())).split(".")[0]  # Format uptime
+# Load Telegram Bot Token from Environment Variable
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
-# Command Handlers
-async def start(update: Update, context: CallbackContext) -> None:
-    await update.message.reply_text("Hello! I'm your bot. Use /help to see available commands.")
+# Ensure Token is available
+if not TOKEN:
+    console.print("[bold red]Error:[/bold red] Telegram bot token is missing! Set TELEGRAM_BOT_TOKEN in environment variables.")
+    exit(1)
 
-async def help_cmd(update: Update, context: CallbackContext) -> None:
-    await update.message.reply_text("/start - Start the bot\n/help - Show commands\n/status - Get VM status")
-
-async def status(update: Update, context: CallbackContext) -> None:
-    cpu_freq = psutil.cpu_freq()
-    ram = psutil.virtual_memory()
-    disk = psutil.disk_usage("/")
-    
-    status_msg = (
-        f"🖥 *VM Status*\n"
-        f"🔹 CPU Speed: {cpu_freq.current:.2f} MHz\n"
-        f"🔹 RAM: {ram.used / (1024 ** 3):.2f} GB / {ram.total / (1024 ** 3):.2f} GB\n"
-        f"🔹 Storage: {disk.used / (1024 ** 3):.2f} GB / {disk.total / (1024 ** 3):.2f} GB\n"
-        f"🔹 CPU Usage: {psutil.cpu_percent()}%\n"
-        f"🔹 VM Uptime: {get_uptime()}"
-    )
-
-    await update.message.reply_text(status_msg, parse_mode="Markdown")
-
-def main():
-    app = Application.builder().token(TOKEN).build()
-
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("help", help_cmd))
-    app.add_handler(CommandHandler("status", status))
-
-    print("Bot is running...")
-    app.run_polling()
-
-if __name__ == "__main__":
-    main()
+# Function to Get System Status
+def get_vm_status():
+    # RAM Usage
+    ram = psutil.virtual_memor

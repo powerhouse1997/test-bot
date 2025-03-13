@@ -1,11 +1,20 @@
 import os
 import psutil
+import time
+from datetime import datetime, timedelta
 from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackContext
 
 TOKEN = "6438781804:AAGvcF5pp2gg2Svr5f0kpxvG9ZMoiG1WACc"
 
-# Command handlers
+# Convert boot time to readable uptime
+def get_uptime():
+    boot_time = datetime.fromtimestamp(psutil.boot_time())
+    now = datetime.now()
+    uptime = now - boot_time
+    return str(timedelta(seconds=uptime.total_seconds())).split(".")[0]  # Format uptime
+
+# Command Handlers
 async def start(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text("Hello! I'm your bot. Use /help to see available commands.")
 
@@ -23,7 +32,7 @@ async def status(update: Update, context: CallbackContext) -> None:
         f"🔹 RAM: {ram.used / (1024 ** 3):.2f} GB / {ram.total / (1024 ** 3):.2f} GB\n"
         f"🔹 Storage: {disk.used / (1024 ** 3):.2f} GB / {disk.total / (1024 ** 3):.2f} GB\n"
         f"🔹 CPU Usage: {psutil.cpu_percent()}%\n"
-        f"🔹 VM Uptime: {psutil.boot_time()}"
+        f"🔹 VM Uptime: {get_uptime()}"
     )
 
     await update.message.reply_text(status_msg, parse_mode="Markdown")

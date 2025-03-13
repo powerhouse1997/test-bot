@@ -7,6 +7,12 @@ from telegram.ext import Application, CommandHandler, CallbackContext
 from rich.progress import Progress
 from rich.console import Console
 from rich.table import Table
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()  
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

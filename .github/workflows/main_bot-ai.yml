@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -33,15 +37,13 @@ jobs:
     - name: Build and Package
       run: |
         echo "Building the application..."
-        # Example: Python packaging
-        # If using Docker, replace this with Docker build
         python setup.py install
 
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v3
       with:
         app-name: ${{ secrets.AZURE_APP_NAME }}
-        slot-name: 'production'  # Optional, if using deployment slots
+        slot-name: 'production'  # Optional
         package: .
         resource-group-name: ${{ secrets.AZURE_RESOURCE_GROUP }}
       

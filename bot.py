@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 # Bot Token
 TOKEN = os.getenv("BOT_TOKEN", "6438781804:AAGvcF5pp2gg2Svr5f0kpxvG9ZMoiG1WACc")
-bot = Bot(token=TOKEN)
+bot = bot(token=TOKEN)
 application = Application.builder().token(TOKEN).build()
 
 # Start Command

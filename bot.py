@@ -1,62 +1,38 @@
 from flask import Flask, request
-from telegram import Update
+from telegram import Update, Bot
 from telegram.ext import Application, CommandHandler, ContextTypes
 import os
-import requests
-
-TOKEN = os.environ.get("BOT_TOKEN", "6438781804:AAGvcF5pp2gg2Svr5f0kpxvG9ZMoiG1WACc")
-WEBHOOK_URL = "https://animebot-cngyfvg2bqadd0ea.centralus-01.azurewebsites.net/webhook"
 
 app = Flask(__name__)
+
+# Set your bot token
+TOKEN = os.getenv("BOT_TOKEN", "6438781804:AAGvcF5pp2gg2Svr5f0kpxvG9ZMoiG1WACc")
+bot = Bot(token=TOKEN)
 application = Application.builder().token(TOKEN).build()
 
-# Command: Start
+# Start Command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("Welcome to the Anime Bot! 😊")
+    await update.message.reply_text("Hello! I am your bot. 😊 Use /start to test me!")
 
-# Command: Interaction
-async def interaction(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not context.args:
-        await update.message.reply_text("Please provide an interaction type! Example: /interaction hug")
-        return
-    action = context.args[0].lower()
-    gif_url = fetch_interaction_gif(action)
-    if "error" in gif_url:
-        await update.message.reply_text("Sorry, I couldn't fetch the interaction GIF.")
-    else:
-        await update.message.reply_animation(animation=gif_url, caption=f"Here's a {action} GIF for you!")
-
-# Utility Functions
-def fetch_interaction_gif(action):
-    url = f"https://api.waifu.pics/sfw/{action}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.json()["url"]
-    else:
-        return {"error": "Could not fetch interaction GIF."}
-
-# Add Handlers
+# Command Handlers
 application.add_handler(CommandHandler("start", start))
-application.add_handler(CommandHandler("interaction", interaction))
 
 # Webhook Route
 @app.route('/webhook', methods=['POST'])
 def webhook():
     try:
-        update = Update.de_json(request.get_json(), application.bot)
+        update = Update.de_json(request.get_json(), bot)
         application.process_update(update)
-        return 'OK', 200
+        return "OK", 200
     except Exception as e:
-        print(f"Error processing update: {e}")
-        return 'Internal Server Error', 500
+        print(f"Error: {e}")
+        return "Internal Server Error", 500
 
-# Set Webhook
-def set_webhook():
-    url = f"https://api.telegram.org/bot{TOKEN}/setWebhook"
-    response = requests.post(url, json={"url": WEBHOOK_URL})
-    print(response.json())
+# Health Check Route
+@app.route('/', methods=['GET'])
+def home():
+    return "Bot is running!", 200
 
-# Start the App
 if __name__ == "__main__":
-    set_webhook()
-    app.run(host='0.0.0.0', port=8000)
+    print("Starting the bot...")
+    app.run(host="0.0.0.0", port=8000)

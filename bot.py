@@ -1,5 +1,6 @@
 from flask import Flask, request
-from telegram import Update, Bot
+from telegram import Update
+import bot
 from telegram.ext import Application, CommandHandler, ContextTypes
 import os
 

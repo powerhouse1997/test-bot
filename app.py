@@ -4,6 +4,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 import os
 import requests
 import logging
+from app import app
 
 # Logging configuration
 logging.basicConfig(level=logging.INFO)

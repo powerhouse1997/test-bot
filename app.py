@@ -98,7 +98,7 @@ def webhook():
 # Main function
 async def main():
     # Start the bot using webhook
-    webhook_url = f"https://animebot-cngyfvg2bqadd0ea.centralus-01.azurewebsites.net/webhook"  # Replace <YourAppServiceName> with your actual Azure App Service name
+    webhook_url = f"animebot-cngyfvg2bqadd0ea.centralus-01.azurewebsites.net/webhook"  # Replace <YourAppServiceName> with your actual Azure App Service name
     await application.bot.set_webhook(url=webhook_url)
 
     app = Flask(__name__)

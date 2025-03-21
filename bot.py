@@ -104,9 +104,10 @@ async def main():
     app = Flask(__name__)
 
 # Health check route
-@app.route('/health', methods=['GET'])
-def health_check():
-    return jsonify(status="healthy"), 200
+@app.function_name(name="HealthCheck")
+@app.route(route="health", auth_level=func.AuthLevel.ANONYMOUS)
+def health(req: func.HttpRequest) -> func.HttpResponse:
+    return func.HttpResponse("", status_code=200)
 
 
 if __name__ == "__main__":

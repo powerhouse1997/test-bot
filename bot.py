@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 import os
@@ -100,6 +100,14 @@ async def main():
     # Start the bot using webhook
     webhook_url = f"https://animebot-cngyfvg2bqadd0ea.centralus-01.azurewebsites.net/webhook"  # Replace <YourAppServiceName> with your actual Azure App Service name
     await application.bot.set_webhook(url=webhook_url)
+
+    app = Flask(__name__)
+
+# Health check route
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify(status="healthy"), 200
+
 
 if __name__ == "__main__":
     # Run the Flask app

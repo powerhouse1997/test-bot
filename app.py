@@ -1,14 +1,21 @@
 from flask import Flask, request, jsonify
-from telegram import Update, Bot
+from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 import os
 import requests
+import logging
+
+# Logging configuration
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Flask app for webhook
 app = Flask(__name__)
 
 # Bot token from environment variables
-BOT_TOKEN = "6438781804:AAGvcF5pp2gg2Svr5f0kpxvG9ZMoiG1WACc"
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+if not BOT_TOKEN:
+    raise ValueError("Missing BOT_TOKEN environment variable")
 
 # Create the application
 application = Application.builder().token(BOT_TOKEN).build()
@@ -21,6 +28,7 @@ def fetch_interaction_gif(action):
         data = response.json()
         return data["url"]
     else:
+        logger.error("Failed to fetch interaction GIF.")
         return {"error": "Could not fetch interaction GIF."}
 
 # Fetch Anime Images
@@ -31,6 +39,7 @@ def fetch_anime_image(category="waifu"):
         data = response.json()
         return data["url"]
     else:
+        logger.error("Failed to fetch anime image.")
         return {"error": "Could not fetch anime image."}
 
 # Fetch Anime Texts
@@ -41,6 +50,7 @@ def fetch_anime_text(endpoint):
         data = response.json()
         return data["text"]
     else:
+        logger.error("Failed to fetch anime text.")
         return {"error": "Could not fetch anime text."}
 
 # Command: Start
@@ -90,19 +100,18 @@ async def anime_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 
 # Add routes for Flask (Webhook setup)
 @app.route('/webhook', methods=['POST'])
-def webhook():
+async def webhook():
     update = Update.de_json(request.get_json(force=True), application.bot)
-    application.process_update(update)
+    await application.process_update(update)
     return "OK", 200
 
 # Main function
 async def main():
     # Start the bot using webhook
-    webhook_url = f"animebot-cngyfvg2bqadd0ea.centralus-01.azurewebsites.net/webhook"  # Replace <YourAppServiceName> with your actual Azure App Service name
+    webhook_url = os.getenv("WEBHOOK_URL", "https://<YourAppServiceName>.azurewebsites.net/webhook")
     await application.bot.set_webhook(url=webhook_url)
-
-    app = Flask(__name__)
+    logger.info(f"Webhook set to {webhook_url}")
 
 if __name__ == "__main__":
     # Run the Flask app
-    app.run(host="0.0.0.0", port=8000)
+    app.run(host="0.0.0.0", port=8080)

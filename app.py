@@ -103,13 +103,6 @@ async def main():
 
     app = Flask(__name__)
 
-# Health check route
-@app.function_name(name="HealthCheck")
-@app.route(route="health", auth_level=func.AuthLevel.ANONYMOUS)
-def health(req: func.HttpRequest) -> func.HttpResponse:
-    return func.HttpResponse("", status_code=200)
-
-
 if __name__ == "__main__":
     # Run the Flask app
     app.run(host="0.0.0.0", port=8000)

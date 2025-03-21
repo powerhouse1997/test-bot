@@ -4,7 +4,6 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 import os
 import requests
 import logging
-from app import app
 
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
@@ -18,7 +17,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 if not BOT_TOKEN:
     raise ValueError("Missing BOT_TOKEN environment variable")
 
-# Create the application
+# Create the Telegram bot application
 application = Application.builder().token(BOT_TOKEN).build()
 
 # Fetch Interaction GIFs
@@ -54,7 +53,7 @@ def fetch_anime_text(endpoint):
         logger.error("Failed to fetch anime text.")
         return {"error": "Could not fetch anime text."}
 
-# Command: Start
+# Telegram bot command handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         "✨ **Welcome to the Anime Bot!**\n\n"
@@ -64,7 +63,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "📜 /anime_text <type> - Get random anime text (e.g., fact, quote, owoify)."
     )
 
-# Command: Interactions
 async def interaction(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not context.args:
         await update.message.reply_text("Please provide an interaction type! Example: /interaction hug")
@@ -76,7 +74,6 @@ async def interaction(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     else:
         await update.message.reply_animation(animation=gif_url, caption=f"Here's a {action} GIF for you!")
 
-# Command: Anime Images
 async def anime_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     category = "waifu"
     if context.args:
@@ -87,7 +84,6 @@ async def anime_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     else:
         await update.message.reply_photo(photo=image_url, caption=f"Here's a {category.capitalize()} image for you!")
 
-# Command: Anime Texts
 async def anime_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not context.args:
         await update.message.reply_text("Please provide a text type! Example: /text fact")
@@ -99,20 +95,23 @@ async def anime_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     else:
         await update.message.reply_text(f"Here's a random {endpoint.capitalize()}:\n\n{text_content}")
 
-# Add routes for Flask (Webhook setup)
+# Register bot command handlers
+application.add_handler(CommandHandler("start", start))
+application.add_handler(CommandHandler("interaction", interaction))
+application.add_handler(CommandHandler("anime_image", anime_image))
+application.add_handler(CommandHandler("anime_text", anime_text))
+
+# Flask route for webhook
 @app.route('/webhook', methods=['POST'])
-async def webhook():
-    update = Update.de_json(request.get_json(force=True), application.bot)
-    await application.process_update(update)
-    return "OK", 200
+def webhook():
+    try:
+        update = Update.de_json(request.get_json(force=True), application.bot)
+        application.process_update(update)
+        return "OK", 200
+    except Exception as e:
+        logger.error(f"Error in webhook: {e}")
+        return jsonify({"error": "Internal server error"}), 500
 
-# Main function
-async def main():
-    # Start the bot using webhook
-    webhook_url = os.getenv("WEBHOOK_URL", "https://<YourAppServiceName>.azurewebsites.net/webhook")
-    await application.bot.set_webhook(url=webhook_url)
-    logger.info(f"Webhook set to {webhook_url}")
-
+# Run the Flask app
 if __name__ == "__main__":
-    # Run the Flask app
-    app.run(host="0.0.0.0", port=8080)
+    app.run(host="0.0.0.0", port=80)

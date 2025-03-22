@@ -102,10 +102,12 @@ application.add_handler(CommandHandler("anime_image", anime_image))
 application.add_handler(CommandHandler("anime_text", anime_text))
 
 # Flask route for webhook
-@app.route('/webhook', methods=['POST'])
+@app.route('/', methods=['GET'])
 def webhook():
     try:
-        update = Update.de_json(request.get_json(force=True), application.bot)
+        update_data = request.get_json(force=True)
+        logger.info(f"Webhook received: {update_data}")
+        update = Update.de_json(update_data, application.bot)
         application.process_update(update)
         return "OK", 200
     except Exception as e:

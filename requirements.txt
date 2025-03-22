@@ -12,4 +12,3 @@ urllib3==2.3.0
 flask 
 python-telegram-bot
 gunicorn
-telegram

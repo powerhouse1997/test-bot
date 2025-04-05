@@ -1,13 +1,13 @@
 import os
 import asyncio
 import datetime
-import requests
+import httpx
 import dateparser
 from flask import Flask, request
 from deep_translator import GoogleTranslator
 from anthropic import AsyncAnthropic
 from telegram import Update, Bot
-from telegram.ext import Application
+from telegram.ext import Application, ContextTypes
 
 # Load environment variables
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
@@ -40,19 +40,21 @@ async def get_ai_response_claude(user_message):
         print(f"Claude API Error: {e}")
         return "Sorry, I encountered a Claude API error."
 
-# Weather
+# Weather (async using httpx)
 async def get_weather(city):
     try:
         url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={WEATHER_API_KEY}&units=metric"
-        response = requests.get(url).json()
-        if response.get("cod") != "404":
-            main = response["main"]
-            temperature = main["temp"]
-            humidity = main["humidity"]
-            description = response["weather"][0]["description"]
-            return f"Weather in {city}: {description}, Temperature: {temperature}°C, Humidity: {humidity}%"
-        else:
-            return "City not found."
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url)
+            data = response.json()
+            if data.get("cod") != "404":
+                main = data["main"]
+                temperature = main["temp"]
+                humidity = main["humidity"]
+                description = data["weather"][0]["description"]
+                return f"Weather in {city}: {description}, Temperature: {temperature}°C, Humidity: {humidity}%"
+            else:
+                return "City not found."
     except Exception as e:
         print(f"Weather API Error: {e}")
         return "Weather information unavailable."
@@ -97,21 +99,16 @@ async def check_reminders():
     now = datetime.datetime.now()
     for chat_id, reminder_list in list(reminders.items()):
         reminders_to_remove = []
-        for reminder in reminder_list:
-            reminder_time = reminder[0]
-            reminder_text = reminder[1]
-            message_id = reminder[2] if len(reminder) > 2 else None
-
+        for reminder_time, reminder_text, *message_id in reminder_list:
             if now >= reminder_time:
                 try:
                     if message_id:
-                        await bot.send_message(chat_id=chat_id, text=f"Reminder: {reminder_text}", reply_to_message_id=message_id)
+                        await bot.send_message(chat_id=chat_id, text=f"Reminder: {reminder_text}", reply_to_message_id=message_id[0])
                     else:
                         await bot.send_message(chat_id=chat_id, text=f"Reminder: {reminder_text}")
                 except Exception as e:
                     print(f"Reminder Send Error: {e}")
-                reminders_to_remove.append(reminder)
-
+                reminders_to_remove.append((reminder_time, reminder_text, *message_id))
         for reminder in reminders_to_remove:
             reminder_list.remove(reminder)
 
@@ -120,10 +117,10 @@ async def reminder_loop():
         await check_reminders()
         await asyncio.sleep(60)
 
-# Webhook
+# Webhook (Async Flask)
 @app.route("/", methods=["POST"])
 async def webhook():
-    data = request.get_json(force=True)
+    data = await request.get_json(force=True)
     update = Update.de_json(data, bot)
     chat_id = update.effective_chat.id
 
@@ -162,7 +159,7 @@ async def webhook():
             if ai_response:
                 await bot.send_message(chat_id=chat_id, text=ai_response)
 
-    return "OK", 200  # <-- return a 200 status code properly
+    return "OK"
 
 # Setup Webhook
 async def setup_webhook():
@@ -174,11 +171,7 @@ async def setup_webhook():
 if __name__ == "__main__":
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-
-    async def main():
-        await setup_webhook()
-        loop.create_task(reminder_loop())
-
-    loop.run_until_complete(main())
+    loop.run_until_complete(setup_webhook())
+    loop.create_task(reminder_loop())
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)

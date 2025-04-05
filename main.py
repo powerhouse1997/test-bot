@@ -13,9 +13,10 @@ import dateparser
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 CLAUDE_API_KEY = os.environ.get("CLAUDE_API_KEY")
 WEATHER_API_KEY = os.environ.get("WEATHER_API_KEY")
+DOMAIN = os.environ.get("DOMAIN")  # <-- New: your Railway domain (without / at end)
 
-if not BOT_TOKEN or not CLAUDE_API_KEY or not WEATHER_API_KEY:
-    raise ValueError("Missing API keys.")
+if not BOT_TOKEN or not CLAUDE_API_KEY or not WEATHER_API_KEY or not DOMAIN:
+    raise ValueError("Missing API keys or domain.")
 
 # Initialize services
 anthropic = AsyncAnthropic(api_key=CLAUDE_API_KEY)
@@ -135,7 +136,9 @@ def webhook():
     if update.message:
         if update.message.text:
             user_message = update.message.text
-            if "/notes" in user_message:
+            if user_message == "/start":
+                ai_response = "Hello! I'm ready to help you 🤖✨"
+            elif "/notes" in user_message:
                 ai_response = asyncio.run(get_notes(chat_id))
             elif "remind me" in user_message.lower():
                 ai_response = asyncio.run(add_reminder_natural(chat_id, user_message))
@@ -174,10 +177,17 @@ async def reminder_loop():
         await check_reminders()
         await asyncio.sleep(60)
 
+# Auto-setup webhook
+async def setup_webhook():
+    webhook_url = f"{DOMAIN}/"
+    await bot.set_webhook(url=webhook_url)
+    print(f"Webhook set to {webhook_url}")
+
 # Start everything
 if __name__ == "__main__":
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
+    loop.run_until_complete(setup_webhook())  # <-- Set webhook when starting
     loop.create_task(reminder_loop())
-    port = int(os.environ.get("PORT", 5000))  # READ PORT from Railway env
-    app.run(host="0.0.0.0", port=port)         # VERY IMPORTANT: bind to 0.0.0.0
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)

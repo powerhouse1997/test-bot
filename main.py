@@ -1,15 +1,14 @@
 import os
-import asyncio
-import datetime
-import requests
-import dateparser
+import telegram
+from telegram.ext import CallbackContext
 from flask import Flask, request
-from googletrans import Translator
+import asyncio
 from anthropic import AsyncAnthropic
-from telegram import Update, Bot
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+import requests
+from deep_translator import GoogleTranslator
+import datetime
+import dateparser
 
-# Load environment variables
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 CLAUDE_API_KEY = os.environ.get("CLAUDE_API_KEY")
 WEATHER_API_KEY = os.environ.get("WEATHER_API_KEY")
@@ -17,15 +16,15 @@ WEATHER_API_KEY = os.environ.get("WEATHER_API_KEY")
 if not BOT_TOKEN or not CLAUDE_API_KEY or not WEATHER_API_KEY:
     raise ValueError("Missing API keys.")
 
-# Initialize services
 anthropic = AsyncAnthropic(api_key=CLAUDE_API_KEY)
-translator = Translator()
+
+bot = telegram.Bot(token=BOT_TOKEN)
 app = Flask(__name__)
+
 notes = {}
 reminders = {}
 
-# Helper functions
-async def get_ai_response_claude(user_message: str) -> str:
+async def get_ai_response_claude(user_message):
     try:
         message = await anthropic.messages.create(
             model="claude-3-5-sonnet-20241022",
@@ -35,139 +34,140 @@ async def get_ai_response_claude(user_message: str) -> str:
         return message.content[0].text.strip()
     except Exception as e:
         print(f"Claude API Error: {e}")
-        return "Claude AI error."
+        return "Sorry, I encountered a Claude API error."
 
-async def get_weather(city: str) -> str:
+async def get_weather(city):
     try:
         url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={WEATHER_API_KEY}&units=metric"
         response = requests.get(url).json()
-        if response.get("cod") != "404":
+        if response["cod"] != "404":
             main = response["main"]
+            temperature = main["temp"]
+            humidity = main["humidity"]
             description = response["weather"][0]["description"]
-            return f"Weather in {city}: {description}, Temp: {main['temp']}°C, Humidity: {main['humidity']}%"
+            return f"Weather in {city}: {description}, Temperature: {temperature}°C, Humidity: {humidity}%"
         else:
             return "City not found."
     except Exception as e:
         print(f"Weather API Error: {e}")
-        return "Weather service error."
+        return "Weather information unavailable."
 
-async def translate_text(text: str, target_language: str) -> str:
+async def translate_text(text, target_language):
     try:
-        translation = translator.translate(text, dest=target_language)
-        return translation.text
+        translation = GoogleTranslator(source='auto', target=target_language).translate(text)
+        return translation
     except Exception as e:
         print(f"Translation Error: {e}")
-        return "Translation error."
+        return "Translation unavailable."
 
-# Handlers
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Hello! I'm your assistant bot 🤖. Type /help to see commands.")
+async def add_note(chat_id, note_text):
+    if chat_id not in notes:
+        notes[chat_id] = []
+    notes[chat_id].append(note_text)
+    return "Note added!"
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    help_text = (
-        "/notes - Show your notes\n"
-        "Reply with 'note this' to a message to save it\n"
-        "/weather <city> - Get weather info\n"
-        "/translate <lang_code> <text> - Translate text\n"
-        "Say 'remind me <time>' to set reminders\n"
-        "Reply /remind_msg <time> <text> to set reminder for a specific message"
-    )
-    await update.message.reply_text(help_text)
+async def get_notes(chat_id):
+    if chat_id in notes and notes[chat_id]:
+        return "\n".join(notes[chat_id])
+    else:
+        return "No notes found."
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.message.chat_id
-    text = update.message.text
+async def add_reminder_natural(chat_id, reminder_text):
+    parsed_date = dateparser.parse(reminder_text)
+    if parsed_date:
+        if chat_id not in reminders:
+            reminders[chat_id] = []
+        reminders[chat_id].append((parsed_date, reminder_text))
+        return f"Reminder set for {parsed_date}!"
+    else:
+        return "Sorry, I couldn't understand the time. Please try again."
 
-    if "/notes" in text:
-        user_notes = notes.get(chat_id, [])
-        response = "\n".join(user_notes) if user_notes else "You have no notes."
-        await update.message.reply_text(response)
-
-    elif "/weather" in text:
-        city = text.replace("/weather", "").strip()
-        response = await get_weather(city)
-        await update.message.reply_text(response)
-
-    elif "/translate" in text:
-        parts = text.replace("/translate", "").strip().split(" ", 1)
-        if len(parts) == 2:
-            lang, msg = parts
-            translation = await translate_text(msg, lang)
-            await update.message.reply_text(translation)
+async def add_reminder_to_message(chat_id, reminder_time, reminder_text, message_id):
+    try:
+        reminder_datetime = dateparser.parse(reminder_time)
+        if reminder_datetime:
+            if chat_id not in reminders:
+                reminders[chat_id] = []
+            reminders[chat_id].append((reminder_datetime, reminder_text, message_id))
+            return f"Reminder set for {reminder_datetime}!"
         else:
-            await update.message.reply_text("Usage: /translate <language_code> <text>")
+            return "Sorry, I couldn't understand the time. Please try again."
+    except Exception as e:
+        print(f"Reminder Error: {e}")
+        return "Sorry, there was an error setting the reminder."
 
-    elif text.lower().startswith("remind me"):
-        parsed_time = dateparser.parse(text)
-        if parsed_time:
-            reminders.setdefault(chat_id, []).append((parsed_time, text))
-            await update.message.reply_text(f"Reminder set for {parsed_time}!")
-        else:
-            await update.message.reply_text("Couldn't parse time.")
-
-    elif update.message.reply_to_message and text.lower() == "note this":
-        note = update.message.reply_to_message.text
-        notes.setdefault(chat_id, []).append(note)
-        await update.message.reply_text("Note saved!")
-
-    elif "/remind_msg" in text and update.message.reply_to_message:
-        parts = text.replace("/remind_msg", "").strip().split(" ", 1)
-        if len(parts) == 2:
-            time_str, reminder_text = parts
-            parsed_time = dateparser.parse(time_str)
-            if parsed_time:
-                reminders.setdefault(chat_id, []).append((parsed_time, reminder_text, update.message.reply_to_message.message_id))
-                await update.message.reply_text(f"Reminder set for {parsed_time}!")
-            else:
-                await update.message.reply_text("Couldn't parse reminder time.")
-        else:
-            await update.message.reply_text("Usage: /remind_msg <time> <text>")
-
-async def check_reminders(context: ContextTypes.DEFAULT_TYPE):
-    bot = context.bot
+async def check_reminders(context):
     now = datetime.datetime.now()
     for chat_id, reminder_list in reminders.items():
         reminders_to_remove = []
-        for reminder in reminder_list:
-            reminder_time = reminder[0]
-            reminder_text = reminder[1]
-            message_id = reminder[2] if len(reminder) > 2 else None
-
+        for reminder_time, reminder_text, *message_id in reminder_list:
             if now >= reminder_time:
                 try:
                     if message_id:
-                        await bot.send_message(chat_id, f"Reminder: {reminder_text}", reply_to_message_id=message_id)
+                        await context.bot.send_message(chat_id=chat_id, text=f"Reminder: {reminder_text}", reply_to_message_id=message_id[0])
                     else:
-                        await bot.send_message(chat_id, f"Reminder: {reminder_text}")
-                except Exception as e:
-                    print(f"Reminder sending error: {e}")
-                reminders_to_remove.append(reminder)
+                        await context.bot.send_message(chat_id=chat_id, text=f"Reminder: {reminder_text}")
+                except telegram.error.BadRequest:
+                    await context.bot.send_message(chat_id=chat_id, text=f"Reminder: {reminder_text} (Original message not found)")
+                reminders_to_remove.append((reminder_time, reminder_text, *message_id))
+        for reminder in reminders_to_remove:
+            reminder_list.remove(reminder)
 
-        for rem in reminders_to_remove:
-            reminder_list.remove(rem)
+async def send_telegram_message(bot_token, chat_id, text):
+    bot = telegram.Bot(token=bot_token)
+    try:
+        await bot.send_message(chat_id=chat_id, text=text)
+    except telegram.error.TelegramError as e:
+        print(f"Error sending message to {chat_id}: {e}")
 
-# Flask Webhook
 @app.route("/", methods=["POST"])
 def webhook():
-    data = request.get_json(force=True)
-    if data:
-        update = Update.de_json(data, bot)
-        asyncio.run(application.process_update(update))
+    update = telegram.Update.de_json(request.get_json(force=True), bot)
+    chat_id = update.effective_chat.id
+    if update.message:
+        if update.message.text:
+            user_message = update.message.text
+            if "/notes" in user_message:
+                ai_response = asyncio.run(get_notes(chat_id))
+            elif "remind me" in user_message.lower():
+                ai_response = asyncio.run(add_reminder_natural(chat_id, user_message))
+            elif "/remind_msg" in user_message:
+                parts = user_message.replace("/remind_msg", "").strip().split(" ", 1)
+                if len(parts) == 2 and update.message.reply_to_message:
+                    reminder_time, reminder_text = parts
+                    ai_response = asyncio.run(add_reminder_to_message(chat_id, reminder_time, reminder_text, update.message.reply_to_message.message_id))
+                else:
+                    ai_response = "Usage: Reply to a message with /remind_msg <time> <reminder_text>"
+            elif "/weather" in user_message:
+                city = user_message.replace("/weather", "").strip()
+                ai_response = asyncio.run(get_weather(city))
+            elif "/translate" in user_message:
+                parts = user_message.replace("/translate", "").strip().split(" ", 1)
+                if len(parts) == 2:
+                    target_language, text = parts
+                    ai_response = asyncio.run(translate_text(text, target_language))
+                else:
+                    ai_response = "Usage: /translate <language code> <text>"
+            elif update.message.reply_to_message and user_message.lower() == 'note this':
+                note_text = update.message.reply_to_message.text
+                ai_response = asyncio.run(add_note(chat_id, note_text))
+            else:
+                ai_response = None  # No special command
+
+            if ai_response:
+                asyncio.run(send_telegram_message(BOT_TOKEN, chat_id, ai_response))
     return "OK"
 
-# Initialize bot and application
-bot = Bot(token=BOT_TOKEN)
-application = Application.builder().token(BOT_TOKEN).build()
+def telegram_webhook(request):
+    return webhook()
 
-# Add handlers
-application.add_handler(CommandHandler("start", start))
-application.add_handler(CommandHandler("help", help_command))
-application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+async def reminder_loop():
+    while True:
+        await check_reminders(CallbackContext.from_update(None, bot))
+        await asyncio.sleep(60)
 
-# Add job to check reminders every 60 seconds
-application.job_queue.run_repeating(check_reminders, interval=60)
-
-# Main
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+    loop = asyncio.get_event_loop()
+    loop.create_task(reminder_loop())
+    app.run(host='0.0.0.0', port=port, debug=True)

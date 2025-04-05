@@ -6,10 +6,8 @@ import dateparser
 from flask import Flask, request
 from deep_translator import GoogleTranslator
 from anthropic import AsyncAnthropic
-from telegram import Update, Bot
+from telegram import Update
 from telegram.ext import Application
-import hypercorn.asyncio
-from hypercorn.config import Config
 
 # Load environment variables
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
@@ -22,7 +20,6 @@ if not BOT_TOKEN or not CLAUDE_API_KEY or not WEATHER_API_KEY or not DOMAIN:
 
 # Initialize services
 anthropic = AsyncAnthropic(api_key=CLAUDE_API_KEY)
-bot = Bot(token=BOT_TOKEN)
 application = Application.builder().token(BOT_TOKEN).build()
 app = Flask(__name__)
 
@@ -42,7 +39,7 @@ async def get_ai_response_claude(user_message):
         print(f"Claude API Error: {e}")
         return "Sorry, I encountered a Claude API error."
 
-# Weather
+# Weather (async using httpx)
 async def get_weather(city):
     try:
         url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={WEATHER_API_KEY}&units=metric"
@@ -105,9 +102,9 @@ async def check_reminders():
             if now >= reminder_time:
                 try:
                     if message_id:
-                        await bot.send_message(chat_id=chat_id, text=f"Reminder: {reminder_text}", reply_to_message_id=message_id[0])
+                        await application.bot.send_message(chat_id=chat_id, text=f"Reminder: {reminder_text}", reply_to_message_id=message_id[0])
                     else:
-                        await bot.send_message(chat_id=chat_id, text=f"Reminder: {reminder_text}")
+                        await application.bot.send_message(chat_id=chat_id, text=f"Reminder: {reminder_text}")
                 except Exception as e:
                     print(f"Reminder Send Error: {e}")
                 reminders_to_remove.append((reminder_time, reminder_text, *message_id))
@@ -122,44 +119,43 @@ async def reminder_loop():
 # Webhook (Async Flask)
 @app.route("/", methods=["POST"])
 async def webhook():
-    data = request.get_json(force=True)  # No await needed here
-    update = Update.de_json(data, bot)
+    data = await request.get_json()
+    update = Update.de_json(data, application.bot)
     chat_id = update.effective_chat.id
 
-    if update.message:
-        if update.message.text:
-            user_message = update.message.text
-            ai_response = None
+    if update.message and update.message.text:
+        user_message = update.message.text
+        ai_response = None
 
-            if user_message == "/start":
-                ai_response = "Hello! I'm ready to help you 🤖✨"
-            elif "/notes" in user_message:
-                ai_response = await get_notes(chat_id)
-            elif "remind me" in user_message.lower():
-                ai_response = await add_reminder_natural(chat_id, user_message)
-            elif "/remind_msg" in user_message:
-                parts = user_message.replace("/remind_msg", "").strip().split(" ", 1)
-                if len(parts) == 2 and update.message.reply_to_message:
-                    reminder_time, reminder_text = parts
-                    ai_response = await add_reminder_to_message(chat_id, reminder_time, reminder_text, update.message.reply_to_message.message_id)
-                else:
-                    ai_response = "Usage: Reply to a message with /remind_msg <time> <reminder_text>"
-            elif "/weather" in user_message:
-                city = user_message.replace("/weather", "").strip()
-                ai_response = await get_weather(city)
-            elif "/translate" in user_message:
-                parts = user_message.replace("/translate", "").strip().split(" ", 1)
-                if len(parts) == 2:
-                    target_language, text = parts
-                    ai_response = await translate_text(text, target_language)
-                else:
-                    ai_response = "Usage: /translate <language code> <text>"
-            elif update.message.reply_to_message and user_message.lower() == 'note this':
-                note_text = update.message.reply_to_message.text
-                ai_response = await add_note(chat_id, note_text)
+        if user_message == "/start":
+            ai_response = "Hello! I'm ready to help you 🤖✨"
+        elif "/notes" in user_message:
+            ai_response = await get_notes(chat_id)
+        elif "remind me" in user_message.lower():
+            ai_response = await add_reminder_natural(chat_id, user_message)
+        elif "/remind_msg" in user_message:
+            parts = user_message.replace("/remind_msg", "").strip().split(" ", 1)
+            if len(parts) == 2 and update.message.reply_to_message:
+                reminder_time, reminder_text = parts
+                ai_response = await add_reminder_to_message(chat_id, reminder_time, reminder_text, update.message.reply_to_message.message_id)
+            else:
+                ai_response = "Usage: Reply to a message with /remind_msg <time> <reminder_text>"
+        elif "/weather" in user_message:
+            city = user_message.replace("/weather", "").strip()
+            ai_response = await get_weather(city)
+        elif "/translate" in user_message:
+            parts = user_message.replace("/translate", "").strip().split(" ", 1)
+            if len(parts) == 2:
+                target_language, text = parts
+                ai_response = await translate_text(text, target_language)
+            else:
+                ai_response = "Usage: /translate <language code> <text>"
+        elif update.message.reply_to_message and user_message.lower() == 'note this':
+            note_text = update.message.reply_to_message.text
+            ai_response = await add_note(chat_id, note_text)
 
-            if ai_response:
-                await bot.send_message(chat_id=chat_id, text=ai_response)
+        if ai_response:
+            await application.bot.send_message(chat_id=chat_id, text=ai_response)
 
     return "OK"
 
@@ -171,15 +167,9 @@ async def setup_webhook():
 
 # Main Start
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-
-    async def main():
-        await setup_webhook()
-        loop.create_task(reminder_loop())
-        config = Config()
-        config.bind = [f"0.0.0.0:{port}"]
-        await hypercorn.asyncio.serve(app, config)
-
-    loop.run_until_complete(main())
+    loop.run_until_complete(setup_webhook())
+    loop.create_task(reminder_loop())
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)

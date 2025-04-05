@@ -1,10 +1,9 @@
 import os
 import telegram
-from telegram.ext import CallbackContext
-from flask import Flask, request
+from quart import Quart, request  # <-- Use Quart instead of Flask
 import asyncio
 from anthropic import AsyncAnthropic
-import requests
+import aiohttp  # async HTTP requests
 from deep_translator import GoogleTranslator
 import datetime
 import dateparser
@@ -13,7 +12,7 @@ import dateparser
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 CLAUDE_API_KEY = os.environ.get("CLAUDE_API_KEY")
 WEATHER_API_KEY = os.environ.get("WEATHER_API_KEY")
-DOMAIN = os.environ.get("DOMAIN")  # <-- New: your Railway domain (without / at end)
+DOMAIN = os.environ.get("DOMAIN")
 
 if not BOT_TOKEN or not CLAUDE_API_KEY or not WEATHER_API_KEY or not DOMAIN:
     raise ValueError("Missing API keys or domain.")
@@ -21,7 +20,7 @@ if not BOT_TOKEN or not CLAUDE_API_KEY or not WEATHER_API_KEY or not DOMAIN:
 # Initialize services
 anthropic = AsyncAnthropic(api_key=CLAUDE_API_KEY)
 bot = telegram.Bot(token=BOT_TOKEN)
-app = Flask(__name__)
+app = Quart(__name__)
 
 # Storage
 notes = {}
@@ -43,8 +42,10 @@ async def get_ai_response_claude(user_message):
 # Weather
 async def get_weather(city):
     try:
-        url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={WEATHER_API_KEY}&units=metric"
-        response = requests.get(url).json()
+        async with aiohttp.ClientSession() as session:
+            url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={WEATHER_API_KEY}&units=metric"
+            async with session.get(url) as resp:
+                response = await resp.json()
         if response.get("cod") != "404":
             main = response["main"]
             temperature = main["temp"]
@@ -121,54 +122,58 @@ async def check_reminders():
         for reminder in reminders_to_remove:
             reminder_list.remove(reminder)
 
-# Sending message
 async def send_telegram_message(chat_id, text):
     try:
         await bot.send_message(chat_id=chat_id, text=text)
     except telegram.error.TelegramError as e:
         print(f"Error sending message to {chat_id}: {e}")
 
-# Flask webhook
+# Webhook route
 @app.route("/", methods=["POST"])
-def webhook():
-    update = telegram.Update.de_json(request.get_json(force=True), bot)
+async def webhook():
+    data = await request.get_json()
+    update = telegram.Update.de_json(data, bot)
     chat_id = update.effective_chat.id
+
     if update.message:
         if update.message.text:
             user_message = update.message.text
+            ai_response = None
+
             if user_message == "/start":
                 ai_response = "Hello! I'm ready to help you 🤖✨"
             elif "/notes" in user_message:
-                ai_response = asyncio.run(get_notes(chat_id))
+                ai_response = await get_notes(chat_id)
             elif "remind me" in user_message.lower():
-                ai_response = asyncio.run(add_reminder_natural(chat_id, user_message))
+                ai_response = await add_reminder_natural(chat_id, user_message)
             elif "/remind_msg" in user_message:
                 parts = user_message.replace("/remind_msg", "").strip().split(" ", 1)
                 if len(parts) == 2 and update.message.reply_to_message:
                     reminder_time, reminder_text = parts
-                    ai_response = asyncio.run(add_reminder_to_message(chat_id, reminder_time, reminder_text, update.message.reply_to_message.message_id))
+                    ai_response = await add_reminder_to_message(chat_id, reminder_time, reminder_text, update.message.reply_to_message.message_id)
                 else:
                     ai_response = "Usage: Reply to a message with /remind_msg <time> <reminder_text>"
             elif "/weather" in user_message:
                 city = user_message.replace("/weather", "").strip()
-                ai_response = asyncio.run(get_weather(city))
+                ai_response = await get_weather(city)
             elif "/translate" in user_message:
                 parts = user_message.replace("/translate", "").strip().split(" ", 1)
                 if len(parts) == 2:
                     target_language, text = parts
-                    ai_response = asyncio.run(translate_text(text, target_language))
+                    ai_response = await translate_text(text, target_language)
                 else:
                     ai_response = "Usage: /translate <language code> <text>"
             elif update.message.reply_to_message and user_message.lower() == 'note this':
                 note_text = update.message.reply_to_message.text
-                ai_response = asyncio.run(add_note(chat_id, note_text))
+                ai_response = await add_note(chat_id, note_text)
             else:
-                pass  # Do nothing
+                pass
 
-            if 'ai_response' in locals():
-                asyncio.run(send_telegram_message(chat_id, ai_response))
+            if ai_response:
+                await send_telegram_message(chat_id, ai_response)
         elif update.message.document:
             pass  # Handle documents if needed
+
     return "OK"
 
 # Reminder loop
@@ -184,10 +189,11 @@ async def setup_webhook():
     print(f"Webhook set to {webhook_url}")
 
 # Start everything
-if __name__ == "__main__":
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(setup_webhook())  # <-- Set webhook when starting
-    loop.create_task(reminder_loop())
+async def main():
+    await setup_webhook()
+    asyncio.create_task(reminder_loop())
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    await app.run_task(host="0.0.0.0", port=port)
+
+if __name__ == "__main__":
+    asyncio.run(main())

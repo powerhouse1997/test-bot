@@ -174,6 +174,13 @@ async def reminder_loop():
         await check_reminders()
         await asyncio.sleep(60)
 
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "App is running!"
+
+
 # Main
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))

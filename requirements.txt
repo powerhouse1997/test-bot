@@ -1,8 +1,6 @@
-flask[async]
-python-telegram-bot --pre
-anthropic
-requests
-deep-translator
-dateparser
-hypercorn
+Flask
+python-telegram-bot==20.8
 httpx
+deep-translator
+anthropic
+dateparser

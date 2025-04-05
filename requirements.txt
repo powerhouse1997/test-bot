@@ -5,3 +5,4 @@ requests
 deep-translator
 dateparser
 hypercorn
+httpx

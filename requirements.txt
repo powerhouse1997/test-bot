@@ -5,3 +5,4 @@ requests
 deep-translator
 dateparser
 gunicorn
+uvicorn

@@ -174,9 +174,10 @@ async def reminder_loop():
         await check_reminders()
         await asyncio.sleep(60)
 
-# Startup code for Railway / Production
+# Start everything
 if __name__ == "__main__":
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.create_task(reminder_loop())
-    # DO NOT run app.run(), Railway will use Gunicorn to run the app
+    port = int(os.environ.get("PORT", 5000))  # READ PORT from Railway env
+    app.run(host="0.0.0.0", port=port)         # VERY IMPORTANT: bind to 0.0.0.0

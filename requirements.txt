@@ -1,8 +1,8 @@
-Flask
-python-telegram-bot==20.8
 anthropic
 requests
 deep-translator
 dateparser
 gunicorn
 uvicorn
+python-telegram-bot==21.1
+flask

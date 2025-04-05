@@ -5,4 +5,4 @@ dateparser
 gunicorn
 uvicorn
 python-telegram-bot==21.1
-flask
+flask[async]

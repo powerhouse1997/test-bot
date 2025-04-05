@@ -1,6 +1,6 @@
 python-telegram-bot==20.8
 Flask
 anthropic
-googletrans==4.0.0-rc1
+deep-translator
 requests
 dateparser

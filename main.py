@@ -165,7 +165,7 @@ def webhook():
             if 'ai_response' in locals():
                 asyncio.run(send_telegram_message(chat_id, ai_response))
         elif update.message.document:
-            pass  # You can handle documents if needed
+            pass  # Handle documents if needed
     return "OK"
 
 # Reminder loop
@@ -174,16 +174,9 @@ async def reminder_loop():
         await check_reminders()
         await asyncio.sleep(60)
 
-app = Flask(__name__)
-
-@app.route("/")
-def home():
-    return "App is running!"
-
-
-# Main
+# Startup code for Railway / Production
 if __name__ == "__main__":
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.create_task(reminder_loop())
-    # Do NOT run app.run() manually! Let Railway/Gunicorn run the app
+    # DO NOT run app.run(), Railway will use Gunicorn to run the app

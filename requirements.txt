@@ -1,5 +1,5 @@
 flask[async]
-python-telegram-bot==20.8
+python-telegram-bot --pre
 anthropic
 requests
 deep-translator

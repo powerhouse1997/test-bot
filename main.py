@@ -7,7 +7,7 @@ from flask import Flask, request
 from deep_translator import GoogleTranslator
 from anthropic import AsyncAnthropic
 from telegram import Update, Bot
-from telegram.ext import Application, ContextTypes
+from telegram.ext import Application
 
 # Load environment variables
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
@@ -97,16 +97,21 @@ async def check_reminders():
     now = datetime.datetime.now()
     for chat_id, reminder_list in list(reminders.items()):
         reminders_to_remove = []
-        for reminder_time, reminder_text, *message_id in reminder_list:
+        for reminder in reminder_list:
+            reminder_time = reminder[0]
+            reminder_text = reminder[1]
+            message_id = reminder[2] if len(reminder) > 2 else None
+
             if now >= reminder_time:
                 try:
                     if message_id:
-                        await bot.send_message(chat_id=chat_id, text=f"Reminder: {reminder_text}", reply_to_message_id=message_id[0])
+                        await bot.send_message(chat_id=chat_id, text=f"Reminder: {reminder_text}", reply_to_message_id=message_id)
                     else:
                         await bot.send_message(chat_id=chat_id, text=f"Reminder: {reminder_text}")
                 except Exception as e:
                     print(f"Reminder Send Error: {e}")
-                reminders_to_remove.append((reminder_time, reminder_text, *message_id))
+                reminders_to_remove.append(reminder)
+
         for reminder in reminders_to_remove:
             reminder_list.remove(reminder)
 
@@ -157,7 +162,7 @@ async def webhook():
             if ai_response:
                 await bot.send_message(chat_id=chat_id, text=ai_response)
 
-    return "OK"
+    return "OK", 200  # <-- return a 200 status code properly
 
 # Setup Webhook
 async def setup_webhook():
@@ -169,7 +174,11 @@ async def setup_webhook():
 if __name__ == "__main__":
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    loop.run_until_complete(setup_webhook())
-    loop.create_task(reminder_loop())
+
+    async def main():
+        await setup_webhook()
+        loop.create_task(reminder_loop())
+
+    loop.run_until_complete(main())
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)

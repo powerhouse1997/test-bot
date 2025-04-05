@@ -183,8 +183,7 @@ def home():
 
 # Main
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.create_task(reminder_loop())
-    app.run(host='0.0.0.0', port=port, debug=True)
+    # Do NOT run app.run() manually! Let Railway/Gunicorn run the app

@@ -7,7 +7,9 @@ from flask import Flask, request
 from deep_translator import GoogleTranslator
 from anthropic import AsyncAnthropic
 from telegram import Update, Bot
-from telegram.ext import Application, ContextTypes
+from telegram.ext import Application
+import hypercorn.asyncio
+from hypercorn.config import Config
 
 # Load environment variables
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
@@ -40,7 +42,7 @@ async def get_ai_response_claude(user_message):
         print(f"Claude API Error: {e}")
         return "Sorry, I encountered a Claude API error."
 
-# Weather (async using httpx)
+# Weather
 async def get_weather(city):
     try:
         url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={WEATHER_API_KEY}&units=metric"
@@ -120,7 +122,7 @@ async def reminder_loop():
 # Webhook (Async Flask)
 @app.route("/", methods=["POST"])
 async def webhook():
-    data = await request.get_json(force=True)
+    data = request.get_json(force=True)  # No await needed here
     update = Update.de_json(data, bot)
     chat_id = update.effective_chat.id
 
@@ -169,9 +171,15 @@ async def setup_webhook():
 
 # Main Start
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    loop.run_until_complete(setup_webhook())
-    loop.create_task(reminder_loop())
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+
+    async def main():
+        await setup_webhook()
+        loop.create_task(reminder_loop())
+        config = Config()
+        config.bind = [f"0.0.0.0:{port}"]
+        await hypercorn.asyncio.serve(app, config)
+
+    loop.run_until_complete(main())

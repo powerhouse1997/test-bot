@@ -49,7 +49,7 @@ async def handle_update(update, bot):
 
             if not city:
                 # Try to get user's saved location
-                city = database.get_user_city(chat_id)
+                city = "Mumbai"
                 if not city:
                     await bot.send_message(chat_id=chat_id, text="📍 Please send me your location to get weather info.")
                     return

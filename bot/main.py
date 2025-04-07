@@ -1,4 +1,3 @@
-# bot/main.py
 import os
 import asyncio
 import aiohttp
@@ -11,25 +10,28 @@ DOMAIN = os.getenv("DOMAIN")
 
 app = FastAPI()
 
-session = aiohttp.ClientSession()
-bot = Bot(token=BOT_TOKEN, session=session)
+bot: Bot = None
+session: aiohttp.ClientSession = None
 
-@app.post("/")
-async def webhook(req: Request):
-    data = await req.json()
-    update = Update.de_json(data, bot)
-    await handlers.handle_update(update, bot)
-    return {"status": "ok"}
+@app.on_event("startup")
+async def on_startup():
+    global bot, session
+    session = aiohttp.ClientSession()
+    bot = Bot(token=BOT_TOKEN, session=session)
 
-async def start_bot():
     await bot.set_webhook(url=f"{DOMAIN}/")
     reminders.load_reminders()
     asyncio.create_task(reminders.reminder_loop(bot))
 
-@app.on_event("startup")
-async def startup_event():
-    await start_bot()
-
 @app.on_event("shutdown")
-async def shutdown_event():
-    await session.close()
+async def on_shutdown():
+    global session
+    if session:
+        await session.close()
+
+@app.post("/")
+async def webhook(request: Request):
+    data = await request.json()
+    update = Update.de_json(data, bot)
+    await handlers.handle_update(update, bot)
+    return {"ok": True}

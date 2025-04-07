@@ -4,6 +4,16 @@ from fastapi import FastAPI, Request
 from telegram import Update, Bot
 from telegram.ext import Application
 from . import handlers, reminders, scheduler, database
+from bot.utils import parse_reminder_time
+
+# Example usage
+reminder_str = "in 10 minutes"
+reminder_time = parse_reminder_time(reminder_str)
+
+if reminder_time:
+    print(f"Reminder set for: {reminder_time}")
+else:
+    print("Could not parse reminder time.")
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 DOMAIN = os.getenv("DOMAIN")

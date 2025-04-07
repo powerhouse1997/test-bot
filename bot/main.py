@@ -3,7 +3,7 @@ import asyncio
 from fastapi import FastAPI, Request
 from telegram import Update, Bot
 from telegram.ext import Application
-from . import handlers, reminders, scheduler
+from . import handlers, reminders, scheduler, database
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 DOMAIN = os.getenv("DOMAIN")

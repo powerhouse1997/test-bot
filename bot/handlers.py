@@ -60,11 +60,13 @@ async def handle_update(update, bot):
         elif text.startswith("/ask"):
             query = text.replace("/ask", "").strip()
             if query:
+                await bot.send_chat_action(chat_id=chat_id, action="typing")
                 await bot.send_message(chat_id=chat_id, text="🤔 Thinking...")
                 reply = await groq.ask_groq(query)
-                await bot.send_message(chat_id=chat_id, text=reply)
+                await bot.send_message(chat_id=chat_id, text=f"*AI says:*\n\n{reply}", parse_mode="Markdown")
             else:
                 await bot.send_message(chat_id=chat_id, text="❗ Please provide a question after /ask")
+
             else:
             # Auto fallback to AI
                 query = text.strip()

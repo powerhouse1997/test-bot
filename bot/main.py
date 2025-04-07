@@ -14,14 +14,14 @@ application = Application.builder().token(BOT_TOKEN).build()
 
 @app.route("/", methods=["POST"])
 async def webhook():
-    data = await request.get_json(force=True)
+    data = request.get_json(force=True)   # 🔥 No await here
     update = Update.de_json(data, bot)
     await handlers.handle_update(update, bot)
     return "OK"
 
 async def start():
     await bot.set_webhook(url=f"{DOMAIN}/")
-    reminders.load_reminders()
+    reminders.load_reminders()             # ✅ No await here
     asyncio.create_task(reminders.reminder_loop(bot))
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)))
 

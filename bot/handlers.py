@@ -1,4 +1,4 @@
-from . import utils, reminders, database
+from . import utils, reminders, database, groq
 
 async def handle_update(update, bot):
     from bot.database import todos  # move inside

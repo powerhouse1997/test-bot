@@ -1,6 +1,7 @@
-from . import utils, reminders, todos, database
+from . import utils, reminders, database
 
 async def handle_update(update, bot):
+    from bot.database import todos  # move inside
     chat_id = update.effective_chat.id
 
     if update.message:

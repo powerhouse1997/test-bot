@@ -1,6 +1,8 @@
-Flask[async]
-python-telegram-bot==20.8
 httpx
 deep-translator
 anthropic
 dateparser
+python-telegram-bot==20.7
+fastapi
+uvicorn
+aiohttp

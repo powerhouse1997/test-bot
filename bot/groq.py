@@ -8,6 +8,6 @@ client = Groq(
 async def ask_ai(prompt: str) -> str:
     chat_completion = client.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
-        model="llama3-70b-8b"  # or your Groq model name
+        model="llama3-70b-8192"  # or your Groq model name
     )
     return chat_completion.choices[0].message.content

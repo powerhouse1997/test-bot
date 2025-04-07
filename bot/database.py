@@ -1,5 +1,4 @@
 from tinydb import TinyDB, Query
-from bot.database import todos
 
 users = set()
 todos = {}

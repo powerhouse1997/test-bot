@@ -65,6 +65,14 @@ async def handle_update(update, bot):
                 await bot.send_message(chat_id=chat_id, text=reply)
             else:
                 await bot.send_message(chat_id=chat_id, text="❗ Please provide a question after /ask")
+            else:
+            # Auto fallback to AI
+                query = text.strip()
+                if query:
+                    await bot.send_message(chat_id=chat_id, text="🤔 Thinking...")
+                    reply = await groq.ask_groq(query)
+                    await bot.send_message(chat_id=chat_id, text=reply)
+
 
 async def send_daily_summary(chat_id, bot):
     # Weather

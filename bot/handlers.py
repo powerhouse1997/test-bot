@@ -9,7 +9,21 @@ async def handle_update(update, bot):
         text = update.message.text or ""
 
         if text.startswith("/start"):
-            await bot.send_sticker(chat_id=chat_id, sticker="CAACAgIAAxkBAAEG1XpmZxVgY5xHbYy8R7rwSgU1kRVAzQACGxIAAkjE8UtN6IS5KHZX0jAE")
+            await bot.send_message(
+                chat_id=chat_id,
+                text="👋 Hello! Welcome to *YourBotName*.\n\nHere’s what I can do for you:\n\n"
+                     "• /ask - Talk with AI 🤖\n"
+                     "• /weather - Get current weather 🌦️\n"
+                     "• /summary - Daily summary 📋\n\n"
+                     "Click the buttons below to get started!",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("💬 Ask AI", callback_data="ask_ai")],
+                    [InlineKeyboardButton("🌦️ Get Weather", callback_data="get_weather")],
+                    [InlineKeyboardButton("📋 View Summary", callback_data="view_summary")],
+                ])
+            )
+
             
             keyboard = [
                 [

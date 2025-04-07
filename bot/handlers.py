@@ -8,6 +8,7 @@ async def handle_update(update, bot):
 
         if text.startswith("/start"):
             await bot.send_message(chat_id=chat_id, text="Hello! I'm your Personal Assistant 🚀\nI can help you with reminders, todos, weather, and more!")
+            database.save_user(chat_id)
 
         elif text.startswith("/weather"):
             city = text.replace("/weather", "").strip()

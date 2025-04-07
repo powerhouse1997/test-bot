@@ -1,27 +1,31 @@
+# bot/main.py
 import os
 import asyncio
-from flask import Flask, request
+from fastapi import FastAPI, Request
 from telegram import Update, Bot
+from telegram.request import AiohttpRequest
 from . import reminders, handlers
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 DOMAIN = os.getenv("DOMAIN")
 
-app = Flask(__name__)
-bot = Bot(token=BOT_TOKEN)
+app = FastAPI()
 
-@app.route("/", methods=["POST"])
-async def webhook():
-    data = request.get_json(force=True)
+request_client = AiohttpRequest()
+bot = Bot(token=BOT_TOKEN, request=request_client)
+
+@app.post("/")
+async def webhook(req: Request):
+    data = await req.json()
     update = Update.de_json(data, bot)
     await handlers.handle_update(update, bot)
-    return "OK"
+    return {"status": "ok"}
 
-async def start():
+async def start_bot():
     await bot.set_webhook(url=f"{DOMAIN}/")
     reminders.load_reminders()
     asyncio.create_task(reminders.reminder_loop(bot))
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)))
 
-if __name__ == "__main__":
-    asyncio.run(start())
+@app.on_event("startup")
+async def startup_event():
+    await start_bot()

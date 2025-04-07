@@ -9,8 +9,8 @@ async def handle_update(update, bot):
         text = update.message.text or ""
 
         if text.startswith("/start"):
-            await bot.send_sticker(chat_id=chat_id, sticker="CAACAgUAAxkBAAEF6TxmZEXAMPLESTICKERID")  # Use your sticker ID
-
+            await bot.send_sticker(chat_id=chat_id, sticker="CAACAgIAAxkBAAEG1XpmZxVgY5xHbYy8R7rwSgU1kRVAzQACGxIAAkjE8UtN6IS5KHZX0jAE")
+            
             keyboard = [
                 [
                     InlineKeyboardButton("📋 Show my Todos", callback_data="show_todos"),

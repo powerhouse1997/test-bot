@@ -55,7 +55,7 @@ async def handle_update(update, bot):
                     return
 
             await bot.send_chat_action(chat_id=chat_id, action="typing")
-            weather_info = await utils.get_weather(city)
+            weather_info = utils.get_weather(city)
             await bot.send_message(chat_id=chat_id, text=weather_info)
 
         elif text.startswith("/remindme"):

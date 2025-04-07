@@ -127,7 +127,7 @@ async def show_todos(chat_id, bot):
     await bot.send_message(chat_id=chat_id, text=message, parse_mode="Markdown")
 
 async def send_daily_summary(chat_id, bot):
-    weather_info = utils.get_weather("Default City")  # You can store per user if needed
+    weather_info = utils.get_weather("Mumbai")  # You can store per user if needed
     todos_list = database.get_todos(chat_id)
 
     if todos_list:

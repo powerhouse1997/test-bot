@@ -71,8 +71,8 @@ async def handle_update(update, bot):
                 if query:
                     await bot.send_message(chat_id=chat_id, text="🤔 Thinking...")
                     reply = await groq.ask_groq(query)
-                    await bot.send_message(chat_id=chat_id, text=reply)
-
+                    await bot.send_chat_action(chat_id=chat_id, action="typing")
+                    await bot.send_message(chat_id=chat_id, text=f"*AI says:*\n\n{reply}", parse_mode="Markdown")
 
 async def send_daily_summary(chat_id, bot):
     # Weather

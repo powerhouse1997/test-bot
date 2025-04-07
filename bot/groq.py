@@ -10,7 +10,7 @@ async def ask_ai(prompt: str) -> str:
         messages=[
             {"role": "user", "content": prompt}
         ],
-        model="llama3-70b-8b",  # Use correct model name that works
+        model="llama3-70b-8192",  # Use correct model name that works
     )
     return chat_completion.choices[0].message.content
 

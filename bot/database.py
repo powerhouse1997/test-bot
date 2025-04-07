@@ -1,5 +1,13 @@
 from tinydb import TinyDB, Query
 
+users = set()
+
+def save_user(chat_id):
+    users.add(chat_id)
+
+def get_all_users():
+    return list(users)
+
 db = TinyDB('db.json')
 reminders_table = db.table('reminders')
 todos_table = db.table('todos')

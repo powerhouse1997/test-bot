@@ -1,4 +1,5 @@
 import os
+import asyncio
 from fastapi import FastAPI, Request
 from telegram import Update, Bot
 from telegram.ext import Application

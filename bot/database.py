@@ -1,6 +1,8 @@
 from tinydb import TinyDB, Query
+from bot.database import todos
 
 users = set()
+todos = {}
 
 def save_user(chat_id):
     users.add(chat_id)

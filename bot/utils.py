@@ -1,19 +1,8 @@
-import httpx
-import anthropic
-from deep_translator import GoogleTranslator
-import dateparser
-import os
+import aiohttp
 
-anthropic_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-
-async def get_weather(city):
-    # Dummy weather info
-    return f"The weather in {city} is 25°C, clear sky ☀️"
-
-async def translate_text(text, lang):
-    translated = GoogleTranslator(target=lang).translate(text)
-    return translated
-
-async def parse_reminder_time(text):
-    dt = dateparser.parse(text, settings={"PREFER_DATES_FROM": "future"})
-    return dt
+async def get_city_from_location(lat, lon):
+    url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}"
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            data = await resp.json()
+            return data.get("address", {}).get("city", "Unknown City")

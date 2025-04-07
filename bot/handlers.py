@@ -1,20 +1,23 @@
 from . import utils, reminders, database, groq
 
 async def handle_update(update, bot):
-    from bot.database import todos  # move inside
+    from bot.database import todos  # moved inside to avoid circular import
     chat_id = update.effective_chat.id
 
     if update.message:
         text = update.message.text or ""
 
         if text.startswith("/start"):
-            await bot.send_message(chat_id=chat_id, text="Hello! I'm your Personal Assistant 🚀\nI can help you with reminders, todos, weather, and more!")
+            await bot.send_message(chat_id=chat_id, text="Hello! I'm your Personal Assistant 🚀\nI can help you with reminders, todos, weather, AI questions, and more!")
             database.save_user(chat_id)
 
         elif text.startswith("/weather"):
             city = text.replace("/weather", "").strip()
-            weather_info = await utils.get_weather(city)
-            await bot.send_message(chat_id=chat_id, text=weather_info)
+            if city:
+                weather_info = await utils.get_weather(city)
+                await bot.send_message(chat_id=chat_id, text=weather_info)
+            else:
+                await bot.send_message(chat_id=chat_id, text="❗ Please provide a city name. Example: /weather London")
 
         elif text.startswith("/remindme"):
             reminder_text = text.replace("/remindme", "").strip()
@@ -49,14 +52,23 @@ async def handle_update(update, bot):
                 database.complete_todo(chat_id, index)
                 await bot.send_message(chat_id=chat_id, text="✅ Marked as done!")
             except (ValueError, IndexError):
-                await bot.send_message(chat_id=chat_id, text="❗ Please provide a valid task number (e.g., /done 1)")
+                await bot.send_message(chat_id=chat_id, text="❗ Please provide a valid task number. Example: /done 1")
 
         elif text.startswith("/summary"):
             await send_daily_summary(chat_id, bot)
 
+        elif text.startswith("/ask"):
+            query = text.replace("/ask", "").strip()
+            if query:
+                await bot.send_message(chat_id=chat_id, text="🤔 Thinking...")
+                reply = await groq.ask_groq(query)
+                await bot.send_message(chat_id=chat_id, text=reply)
+            else:
+                await bot.send_message(chat_id=chat_id, text="❗ Please provide a question after /ask")
+
 async def send_daily_summary(chat_id, bot):
     # Weather
-    weather_info = await utils.get_weather("Your Default City")  # TODO: Make city dynamic per user if needed
+    weather_info = await utils.get_weather("Your Default City")  # (Optional: make dynamic per user)
 
     # Todos
     todos_list = database.get_todos(chat_id)

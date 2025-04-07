@@ -9,7 +9,7 @@ async def ask_groq(question):
         "Content-Type": "application/json",
     }
     payload = {
-        "model": "mixtral-8x7b-32768",  # You can change model here
+        "model": "llama3-70b-8192",  # You can change model here
         "messages": [
             {"role": "user", "content": question}
         ],

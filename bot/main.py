@@ -1,38 +1,36 @@
 import os
-import asyncio
-import aiohttp
 from fastapi import FastAPI, Request
-from contextlib import asynccontextmanager
 from telegram import Update, Bot
-from . import reminders, handlers
+from telegram.ext import Application
+from . import handlers, reminders
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 DOMAIN = os.getenv("DOMAIN")
 
-bot: Bot = None
-session: aiohttp.ClientSession = None
+bot = Bot(token=BOT_TOKEN)
+application = Application.builder().token(BOT_TOKEN).build()
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global bot, session
-    # Startup
-    session = aiohttp.ClientSession()
-    bot = Bot(token=BOT_TOKEN, session=session)
-
-    await bot.set_webhook(url=f"{DOMAIN}/")
-    reminders.load_reminders()
-    asyncio.create_task(reminders.reminder_loop(bot))
-
-    yield  # App runs here
-
-    # Shutdown
-    await session.close()
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 
 @app.post("/")
 async def webhook(request: Request):
     data = await request.json()
     update = Update.de_json(data, bot)
     await handlers.handle_update(update, bot)
-    return {"ok": True}
+    return "OK"
+
+@app.on_event("startup")
+async def on_startup():
+    print("Starting bot...")
+    await bot.set_webhook(url=f"{DOMAIN}/")
+    reminders.load_reminders()
+    application.create_task(reminders.reminder_loop(bot))
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    print("Bot is shutting down...")
+
+# Entry point
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("bot.main:app", host="0.0.0.0", port=int(os.getenv("PORT", 8000)))

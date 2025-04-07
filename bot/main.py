@@ -1,9 +1,9 @@
 # bot/main.py
 import os
 import asyncio
+import aiohttp
 from fastapi import FastAPI, Request
 from telegram import Update, Bot
-from telegram.request import AiohttpRequest
 from . import reminders, handlers
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -11,8 +11,8 @@ DOMAIN = os.getenv("DOMAIN")
 
 app = FastAPI()
 
-request_client = AiohttpRequest()
-bot = Bot(token=BOT_TOKEN, request=request_client)
+session = aiohttp.ClientSession()
+bot = Bot(token=BOT_TOKEN, session=session)
 
 @app.post("/")
 async def webhook(req: Request):
@@ -29,3 +29,7 @@ async def start_bot():
 @app.on_event("startup")
 async def startup_event():
     await start_bot()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await session.close()

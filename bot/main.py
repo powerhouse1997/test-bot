@@ -1,31 +1,27 @@
 import os
 import asyncio
-from telegram import Update
-from telegram.ext import Application, ContextTypes, CommandHandler
+from flask import Flask, request
+from telegram import Update, Bot
 from . import reminders, handlers
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 DOMAIN = os.getenv("DOMAIN")
 
-async def start_bot():
-    application = Application.builder().token(BOT_TOKEN).build()
+app = Flask(__name__)
+bot = Bot(token=BOT_TOKEN)
 
-    # Register your handlers here
-    application.add_handler(handlers.get_handler())  # assuming you have a `get_handler` function
+@app.route("/", methods=["POST"])
+async def webhook():
+    data = request.get_json(force=True)
+    update = Update.de_json(data, bot)
+    await handlers.handle_update(update, bot)
+    return "OK"
 
-    # Load reminders
+async def start():
+    await bot.set_webhook(url=f"{DOMAIN}/")
     reminders.load_reminders()
-    
-    # Start reminder loop
-    asyncio.create_task(reminders.reminder_loop(application.bot))
-
-    # Start the webhook server
-    await application.run_webhook(
-        listen="0.0.0.0",
-        port=int(os.getenv("PORT", 5000)),
-        webhook_url=f"{DOMAIN}/",
-    )
+    asyncio.create_task(reminders.reminder_loop(bot))
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)))
 
 if __name__ == "__main__":
-    asyncio.run(start_bot())
-
+    asyncio.run(start())

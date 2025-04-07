@@ -1,21 +1,25 @@
-# bot/groq.py
+import aiohttp
 
-import httpx
-import os
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_API_KEY = "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"  # Replace this!
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")  # Put your API Key in environment variable
+async def ask_groq(question):
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": "mixtral-8x7b-32768",  # You can change model here
+        "messages": [
+            {"role": "user", "content": question}
+        ],
+        "temperature": 0.7
+    }
 
-async def ask_groq(prompt: str) -> str:
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
-            json={
-                "model": "llama3-70b-8192",  # Llama 3 big model (free + best)
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.7,  # randomness
-            }
-        )
-        response.raise_for_status()
-        data = response.json()
-        return data["choices"][0]["message"]["content"]
+    async with aiohttp.ClientSession() as session:
+        async with session.post(GROQ_API_URL, headers=headers, json=payload) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                return data['choices'][0]['message']['content']
+            else:
+                return f"❌ Error: {resp.status} - {await resp.text()}"

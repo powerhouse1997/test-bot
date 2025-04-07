@@ -2,7 +2,7 @@ import os
 from fastapi import FastAPI, Request
 from telegram import Update, Bot
 from telegram.ext import Application
-from . import handlers, reminders
+from . import handlers, reminders, scheduler
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 DOMAIN = os.getenv("DOMAIN")
@@ -25,6 +25,7 @@ async def on_startup():
     await bot.set_webhook(url=f"{DOMAIN}/")
     reminders.load_reminders()
     application.create_task(reminders.reminder_loop(bot))
+    asyncio.create_task(scheduler.daily_summary(bot, database))
 
 @app.on_event("shutdown")
 async def on_shutdown():

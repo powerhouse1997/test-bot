@@ -3,10 +3,9 @@ import logging
 from fastapi import FastAPI, Request
 from telegram import Update, Bot
 from telegram.ext import Application, ApplicationBuilder, CallbackQueryHandler, MessageHandler, filters
-
 from bot import handlers, reminders
 from bot.utils import parse_reminder_time
-from bot.reminders import check_reminders_loop
+from bot.reminders import reminders_loop
 
 # Load environment variables
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")

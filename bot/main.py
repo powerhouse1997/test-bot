@@ -6,9 +6,10 @@ from telegram.ext import Application
 from . import handlers, reminders, scheduler, database
 from bot.utils import parse_reminder_time
 from telegram.ext import ApplicationBuilder
+from bot.reminders import check_reminders_loop
+
 
 async def start_reminders(application):
-from bot.reminders import check_reminders_loop
 application.create_task(check_reminders_loop(application.bot))
 def main():
     app = ApplicationBuilder().token("YOUR_TOKEN").post_init(start_reminders).build()

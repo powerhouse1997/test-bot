@@ -60,7 +60,7 @@ async def handle_update(update, bot):
 
         elif text.startswith("/remindme"):
             reminder_text = text.replace("/remindme", "").strip()
-            reminder_time = await utils.parse_reminder_time(reminder_text)
+            reminder_time = utils.parse_reminder_time(reminder_text)
 
             if reminder_time:
                 database.add_reminder(chat_id, reminder_time.isoformat(), reminder_text)

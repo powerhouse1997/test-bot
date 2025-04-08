@@ -29,20 +29,25 @@ def get_weather(city: str) -> str:
     except Exception as e:
         return "⚠️ Error fetching weather data."
 
-def parse_reminder_time(reminder_str: str) -> datetime:
-    """Parse a reminder time from a string."""
-    try:
-        # Example: 'in 10 minutes' or 'in 2 hours'
-        if 'minute' in reminder_str:
-            minutes = int(reminder_str.split()[1])
-            return datetime.now() + timedelta(minutes=minutes)
-        elif 'hour' in reminder_str:
-            hours = int(reminder_str.split()[1])
-            return datetime.now() + timedelta(hours=hours)
-        elif 'day' in reminder_str:
-            days = int(reminder_str.split()[1])
-            return datetime.now() + timedelta(days=days)
-        else:
-            return None  # Return None or handle other formats as necessary
-    except Exception as e:
-        return None  # In case of error, return None or handle it as needed
+def parse_reminder_time(text):
+    """
+    Parses time expressions like '10 min', '2 hours', etc.
+    """
+    pattern = r"(\d+)\s*(min|minute|minutes|hour|hours)"
+    match = re.search(pattern, text.lower())
+
+    if not match:
+        return None
+
+    amount, unit = match.groups()
+    amount = int(amount)
+
+    if "min" in unit:
+        delta = timedelta(minutes=amount)
+    elif "hour" in unit:
+        delta = timedelta(hours=amount)
+    else:
+        return None
+
+    reminder_time = datetime.now() + delta
+    return reminder_time

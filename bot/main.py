@@ -47,7 +47,7 @@ async def on_startup():
     logging.info("Starting bot and setting webhook...")
     webhook_url = f"{DOMAIN}/"
     await bot.set_webhook(webhook_url)
-    application.create_task(check_reminders_loop(bot))
+    application.create_task(reminder_loop(bot))
     logging.info("Reminder loop started!")
 
 # Shutdown event

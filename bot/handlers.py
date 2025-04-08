@@ -8,41 +8,37 @@ async def handle_update(update, bot):
     if update.message:
         text = update.message.text or ""
 
-        if text.startswith("/start"):
-            await bot.send_message(
-                chat_id=chat_id,
-                text="👋 Hello! Welcome to *YourBotName*.\n\nHere’s what I can do for you:\n\n"
-                     "• /ask - Talk with AI 🤖\n"
-                     "• /weather - Get current weather 🌦️\n"
-                     "• /summary - Daily summary 📋\n\n"
-                     "Click the buttons below to get started!",
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("💬 Ask AI", callback_data="ask_ai")],
-                    [InlineKeyboardButton("🌦️ Get Weather", callback_data="get_weather")],
-                    [InlineKeyboardButton("📋 View Summary", callback_data="view_summary")],
-                ])
-            )
+        first_name = update.effective_user.first_name
 
-            
-            keyboard = [
+        await bot.send_message(
+            chat_id=chat_id,
+            text=(
+                f"👋 *Hey {first_name}! Glad to see you here!*\n\n"
+                "I'm your personal assistant, ready to help you with:\n\n"
+                "💬 *Chat with AI* — Ask me anything!\n"
+                "🌦️ *Weather Updates* — Stay ahead of the skies!\n"
+                "📝 *Manage To-Dos* — Organize your life effortlessly!\n"
+                "⏰ *Set Reminders* — Never miss anything important!\n"
+                "🗓️ *Daily Summary* — Your day at a glance!\n\n"
+                "✨ Let's get started — tap a button below!"
+            ),
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
                 [
-                    InlineKeyboardButton("📋 Show my Todos", callback_data="show_todos"),
-                    InlineKeyboardButton("⏰ Set Reminder", callback_data="set_reminder")
+                    InlineKeyboardButton("💬 Chat with AI", callback_data="ask_ai"),
+                    InlineKeyboardButton("🌦️ Weather", callback_data="get_weather")
                 ],
                 [
-                    InlineKeyboardButton("💬 Chat with AI", callback_data="chat_ai")
+                    InlineKeyboardButton("📝 To-Dos", callback_data="show_todos"),
+                    InlineKeyboardButton("⏰ Reminders", callback_data="set_reminder")
+                ],
+                [
+                    InlineKeyboardButton("🗓️ Daily Summary", callback_data="view_summary")
                 ]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
+            ])
+        )
 
-            await bot.send_message(
-                chat_id=chat_id,
-                text="👋 *Welcome to Personal Assistant Bot!*\n\nChoose an option below to get started:",
-                parse_mode="Markdown",
-                reply_markup=reply_markup
-            )
-            database.save_user(chat_id)
+             database.save_user(chat_id)
 
         elif text.startswith("/weather"):
             city = text.replace("/weather", "").strip()

@@ -10,7 +10,7 @@ from bot.reminders import check_reminders_loop
 
 
 async def start_reminders(application):
-application.create_task(check_reminders_loop(application.bot))
+    application.create_task(check_reminders_loop(application.bot))
 def main():
     app = ApplicationBuilder().token("YOUR_TOKEN").post_init(start_reminders).build()
     app.run_polling()

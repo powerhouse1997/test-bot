@@ -47,8 +47,18 @@ async def on_startup():
     logging.info("Starting bot and setting webhook...")
     webhook_url = f"{DOMAIN}/"
     await bot.set_webhook(webhook_url)
+    await application.initialize()  # ✅
+    await application.start()
     application.create_task(reminder_loop(bot))
     logging.info("Reminder loop started!")
+
+@app.post("/")
+async def webhook(request: Request):
+    data = await request.json()
+    update = Update.de_json(data, bot)
+
+    await application.process_update(update)  # ✅ now it won't crash
+    return "OK"
 
 # Shutdown event
 @app.on_event("shutdown")

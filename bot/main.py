@@ -41,12 +41,30 @@ async def webhook(request: Request):
 @app.on_event("startup")
 async def on_startup():
     print("Starting bot...")
-    await bot.set_webhook(url=f"{DOMAIN}/")
-    reminders.load_reminders()
-    application.create_task(reminders.reminder_loop(bot))
-    asyncio.create_task(scheduler.daily_summary(bot, database))
+    async def on_startup(application):
+    application.create_task(reminders.reminder_loop(application.bot))
+    logging.info("Reminder loop started!")
 
-@app.on_event("shutdown")
+def main():
+    # Get Bot Token from Environment Variable
+    BOT_TOKEN = os.getenv("BOT_TOKEN")
+    if not BOT_TOKEN:
+        raise ValueError("❌ BOT_TOKEN is not set in environment variables!")
+
+    # Create the Application
+    application = Application.builder().token(BOT_TOKEN).build()
+
+    # Add Handlers
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handlers.handle_update))
+    application.add_handler(MessageHandler(filters.COMMAND, handlers.handle_update))
+    application.add_handler(CallbackQueryHandler(handlers.handle_update))
+
+    # Run Reminder Loop AFTER app starts
+    application.post_init(on_startup)
+
+    # Start polling
+    application.run_polling()
+
 async def on_shutdown():
     print("Bot is shutting down...")
 

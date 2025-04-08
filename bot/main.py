@@ -1,21 +1,31 @@
 import os
-import asyncio
+import logging
 from fastapi import FastAPI, Request
 from telegram import Update, Bot
-from telegram.ext import Application
-from . import handlers, reminders, scheduler, database
+from telegram.ext import Application, ApplicationBuilder, CallbackQueryHandler, MessageHandler, filters
+
+from bot import handlers, reminders
 from bot.utils import parse_reminder_time
-from telegram.ext import ApplicationBuilder
 from bot.reminders import check_reminders_loop
 
+# Load environment variables
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+DOMAIN = os.getenv("DOMAIN")
 
-async def start_reminders(application):
-    application.create_task(check_reminders_loop(application.bot))
-def main():
-    app = ApplicationBuilder().token("YOUR_TOKEN").post_init(start_reminders).build()
-    app.run_polling()
+if not BOT_TOKEN:
+    raise ValueError("❌ TELEGRAM_BOT_TOKEN is not set in environment variables!")
 
-# Example usage
+# Initialize bot and FastAPI app
+bot = Bot(token=BOT_TOKEN)
+app = FastAPI()
+
+# Create the Application
+application = ApplicationBuilder().token(BOT_TOKEN).build()
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+
+# Example usage of parse_reminder_time
 reminder_str = "in 10 minutes"
 reminder_time = parse_reminder_time(reminder_str)
 
@@ -24,50 +34,32 @@ if reminder_time:
 else:
     print("Could not parse reminder time.")
 
-BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-DOMAIN = os.getenv("DOMAIN")
-
-bot = Bot(token=BOT_TOKEN)
-application = Application.builder().token(BOT_TOKEN).build()
-
-app = FastAPI()
-
+# FastAPI webhook endpoint
 @app.post("/")
 async def webhook(request: Request):
     data = await request.json()
     update = Update.de_json(data, bot)
-    await handlers.handle_update(update, bot)
-    return "OK"
+    await application.process_update(update)
+    return {"ok": True}
 
+# Startup event
 @app.on_event("startup")
 async def on_startup():
-    print("Starting bot...")
-    async def on_startup(application):
-    application.create_task(reminders.reminder_loop(application.bot))
+    logging.info("Starting bot and setting webhook...")
+    webhook_url = f"{DOMAIN}/"
+    await bot.set_webhook(webhook_url)
+    application.create_task(check_reminders_loop(bot))
     logging.info("Reminder loop started!")
 
-def main():
-    # Get Bot Token from Environment Variable
-    BOT_TOKEN = os.getenv("BOT_TOKEN")
-    if not BOT_TOKEN:
-        raise ValueError("❌ BOT_TOKEN is not set in environment variables!")
-
-    # Create the Application
-    application = Application.builder().token(BOT_TOKEN).build()
-
-    # Add Handlers
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handlers.handle_update))
-    application.add_handler(MessageHandler(filters.COMMAND, handlers.handle_update))
-    application.add_handler(CallbackQueryHandler(handlers.handle_update))
-
-    # Run Reminder Loop AFTER app starts
-    application.post_init(on_startup)
-
-    # Start polling
-    application.run_polling()
-
+# Shutdown event
+@app.on_event("shutdown")
 async def on_shutdown():
-    print("Bot is shutting down...")
+    logging.info("Bot is shutting down...")
+
+# Add your handlers
+application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handlers.handle_update))
+application.add_handler(MessageHandler(filters.COMMAND, handlers.handle_update))
+application.add_handler(CallbackQueryHandler(handlers.handle_update))
 
 # Entry point
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 import requests
 from datetime import datetime, timedelta
-
+import re
 # Optional: you can use OpenWeatherMap API or any weather service
 API_KEY = "28b970111ddad32e8644cc3c2b71153c"
 

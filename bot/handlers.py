@@ -11,6 +11,29 @@ from telegram import Update, ChatPermissions
 from telegram.ext import ContextTypes
 
 # Inside handlers.py
+async def check_filters(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message is None:
+        return
+
+    text = update.message.text.lower()
+    for keyword, reply_text in filters_dict.items():
+        if keyword in text:
+            await update.message.reply_text(reply_text)
+            break
+            
+async def add_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message is None or update.message.chat.type == "private":
+        return
+
+    if len(context.args) < 2:
+        await update.message.reply_text("Usage: /filter <keyword> <response>")
+        return
+
+    keyword = context.args[0].lower()
+    response = " ".join(context.args[1:])
+    filters_dict[keyword] = response
+    await update.message.reply_text(f"Filter '{keyword}' added!")
+
 
 async def rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Group Rules:\n1. Be respectful\n2. No spam\n3. Follow admin instructions")

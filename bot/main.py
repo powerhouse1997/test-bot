@@ -3,7 +3,6 @@ import logging
 from fastapi import FastAPI, Request
 from telegram import Update
 from telegram.ext import (
-    Application,
     ApplicationBuilder,
     CommandHandler,
     CallbackQueryHandler,
@@ -13,14 +12,9 @@ from telegram.ext import (
 from bot import handlers, reminders
 from bot.utils import parse_reminder_time
 from bot.reminders import reminder_loop
-from bot.handlers import search_manga
+from bot.handlers import search_manga, add_power, remove_power
 from bot.models import init_db
-from bot.handlers import add_power, remove_power
 from bot.power_manager import load_power_users
-
-# Inside your `on_startup` function
-application.add_handler(CommandHandler("addpower", add_power))
-application.add_handler(CommandHandler("removepower", remove_power))
 
 # Load environment variables
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -38,7 +32,7 @@ application = ApplicationBuilder().token(BOT_TOKEN).build()
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 
-# Example parse reminder
+# ✅ Example parse reminder
 reminder_str = "in 10 minutes"
 reminder_time = parse_reminder_time(reminder_str)
 if reminder_time:
@@ -48,6 +42,8 @@ else:
 
 # ✅ Register your handlers
 application.add_handler(CommandHandler("manga", search_manga))
+application.add_handler(CommandHandler("addpower", add_power))
+application.add_handler(CommandHandler("removepower", remove_power))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handlers.handle_update))
 application.add_handler(MessageHandler(filters.COMMAND, handlers.handle_update))
 application.add_handler(CallbackQueryHandler(handlers.handle_update))
@@ -56,7 +52,7 @@ application.add_handler(CallbackQueryHandler(handlers.handle_update))
 @app.post("/")
 async def telegram_webhook(request: Request):
     data = await request.json()
-    update = Update.de_json(data, application.bot)  # use application.bot, not bot
+    update = Update.de_json(data, application.bot)  # use application.bot safely
     await application.process_update(update)
     return {"ok": True}
 
@@ -65,22 +61,18 @@ async def telegram_webhook(request: Request):
 async def on_startup():
     logging.info("🚀 Starting bot...")
     init_db()
-
-
-    await application.initialize()
     load_power_users()
 
-    await application.start()
     await application.initialize()
     await application.start()
 
     webhook_url = f"{DOMAIN}/"
     await application.bot.set_webhook(webhook_url)
+    logging.info(f"✅ Webhook set to: {webhook_url}")
 
-    # Reminder loop
+    # Start reminder loop
     application.create_task(reminder_loop(application.bot))
-    
-    logging.info("✅ Bot started and reminder loop running!")
+    logging.info("✅ Bot and Reminder loop running!")
 
 # ✅ Shutdown event
 @app.on_event("shutdown")

@@ -16,7 +16,9 @@ from bot.reminders import reminder_loop
 from bot.handlers import search_manga
 from bot.models import init_db
 from bot.handlers import add_power, remove_power
+from bot.power_manager import load_power_users
 
+# Inside your `on_startup` function
 application.add_handler(CommandHandler("addpower", add_power))
 application.add_handler(CommandHandler("removepower", remove_power))
 
@@ -63,7 +65,12 @@ async def telegram_webhook(request: Request):
 async def on_startup():
     logging.info("🚀 Starting bot...")
     init_db()
-    
+
+
+    await application.initialize()
+    load_power_users()
+
+    await application.start()
     await application.initialize()
     await application.start()
 

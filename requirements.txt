@@ -3,3 +3,4 @@ fastapi
 python-telegram-bot==20.8
 uvicorn
 aiohttp
+dateparser

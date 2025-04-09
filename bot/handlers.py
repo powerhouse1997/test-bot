@@ -14,6 +14,10 @@ from telegram.ext import ContextTypes
 async def is_admin(update: Update, user_id: int) -> bool:
     member = await update.effective_chat.get_member(user_id)
     return member.status in ["administrator", "creator"]
+    
+async def add_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("You used the /filter command!")
+
 
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update, update.message.from_user.id):

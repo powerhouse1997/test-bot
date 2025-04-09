@@ -6,6 +6,10 @@ from telegram.ext import Application, ApplicationBuilder, CallbackQueryHandler, 
 from bot import handlers, reminders
 from bot.utils import parse_reminder_time
 from bot.reminders import reminder_loop
+from telegram.ext import CommandHandler
+from handlers import search_manga
+
+app.add_handler(CommandHandler("manga", search_manga))
 
 # Load environment variables
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")

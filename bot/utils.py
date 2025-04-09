@@ -1,7 +1,7 @@
 import requests
 from datetime import datetime, timedelta
 import re
-# bot/utils.py
+from bot.power_manager import is_power_user
 import requests
 async def fetch_recommendations(manga_name):
     url = "https://graphql.anilist.co"

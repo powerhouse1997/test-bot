@@ -15,6 +15,37 @@ async def is_admin(update: Update, user_id: int) -> bool:
     member = await update.effective_chat.get_member(user_id)
     return member.status in ["administrator", "creator"]
 
+async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, update.message.from_user.id):
+        return await update.message.reply_text("Only admins can stop me.")
+    await update.message.reply_text("Bot stopped. Bye 👋")
+    await context.bot.leave_chat(update.effective_chat.id)
+
+warnings = {}
+
+async def warn(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, update.message.from_user.id):
+        return await update.message.reply_text("Only admins can warn.")
+    user = await get_target_user(update, context)
+    if user:
+        warnings[user.id] = warnings.get(user.id, 0) + 1
+        count = warnings[user.id]
+        await update.message.reply_text(f"Warned {user.mention_html()}. Total warns: {count}", parse_mode="HTML")
+        if count >= 3:
+            await context.bot.kick_chat_member(update.effective_chat.id, user.id)
+            await update.message.reply_text(f"{user.mention_html()} has been banned after 3 warnings.", parse_mode="HTML")
+            warnings[user.id] = 0
+
+async def pin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, update.message.from_user.id):
+        return await update.message.reply_text("Only admins can pin.")
+    if update.message.reply_to_message:
+        await update.message.reply_to_message.pin()
+        await update.message.reply_text("Message pinned!")
+    else:
+        await update.message.reply_text("Reply to a message to pin it.")
+
+
 # Helper function to get target user
 async def get_target_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.reply_to_message:
@@ -358,6 +389,7 @@ async def handle_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif update.callback_query:
         query = update.callback_query
         data = query.data
+        
 
         if data == "show_todos":
             await show_todos(chat_id, context)

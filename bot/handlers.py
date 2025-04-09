@@ -10,6 +10,12 @@ from bot.power_manager import add_power_user, remove_power_user, is_power_user
 from telegram import Update, ChatPermissions
 from telegram.ext import ContextTypes
 
+# Inside handlers.py
+
+async def rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Group Rules:\n1. Be respectful\n2. No spam\n3. Follow admin instructions")
+
+
 # Helper function to check admin
 async def is_admin(update: Update, user_id: int) -> bool:
     member = await update.effective_chat.get_member(user_id)

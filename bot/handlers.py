@@ -3,6 +3,11 @@ from telegram.ext import ContextTypes
 from bot.utils import ask_meta_ai
 from bot.power_manager import is_power_user
 from telegram import ChatPermissions
+from telegram import Update
+from telegram.ext import ContextTypes
+
+async def power_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("I have admin powers!")
 
 async def features(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (

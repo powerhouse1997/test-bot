@@ -47,6 +47,27 @@ application.add_handler(CommandHandler("removepower", remove_power))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handlers.handle_update))
 application.add_handler(MessageHandler(filters.COMMAND, handlers.handle_update))
 application.add_handler(CallbackQueryHandler(handlers.handle_update))
+application.add_handler(CommandHandler("mute", admin.mute))
+application.add_handler(CommandHandler("unmute", admin.unmute))
+application.add_handler(CommandHandler("kick", admin.kick))
+application.add_handler(CommandHandler("ban", admin.ban))
+application.add_handler(CommandHandler("unban", admin.unban))
+application.add_handler(CommandHandler("promote", admin.promote))
+application.add_handler(CommandHandler("demote", admin.demote))app.add_handler(CommandHandler("mute", handlers.mute))
+application.add_handler(CommandHandler("unmute", handlers.unmute))
+application.add_handler(CommandHandler("kick", handlers.kick))
+application.add_handler(CommandHandler("ban", handlers.ban))
+application.add_handler(CommandHandler("unban", handlers.unban))
+application.add_handler(CommandHandler("promote", handlers.promote))
+application.add_handler(CommandHandler("demote", handlers.demote))
+application.add_handler(CommandHandler("stop", handlers.stop))
+application.add_handler(CommandHandler("filter", handlers.add_filter))
+application.add_handler(CommandHandler("warn", handlers.warn))
+application.add_handler(CommandHandler("rules", handlers.rules))
+application.add_handler(CommandHandler("pin", handlers.pin))
+application.add_handler(MessageHandler(filters.TEXT, handlers.check_filters))  # For filters
+
+
 
 # ✅ Webhook endpoint
 @app.post("/")

@@ -14,6 +14,7 @@ from bot import handlers, reminders
 from bot.utils import parse_reminder_time
 from bot.reminders import reminder_loop
 from bot.handlers import search_manga
+from bot.models import init_db
 
 # Load environment variables
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -57,6 +58,7 @@ async def telegram_webhook(request: Request):
 @app.on_event("startup")
 async def on_startup():
     logging.info("🚀 Starting bot...")
+    init_db()
     
     await application.initialize()
     await application.start()

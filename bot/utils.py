@@ -1,6 +1,37 @@
 import requests
 from datetime import datetime, timedelta
 import re
+# bot/utils.py
+import requests
+async def fetch_recommendations(manga_name):
+    url = "https://graphql.anilist.co"
+    query = '''
+    query ($search: String) {
+      Media(search: $search, type: MANGA) {
+        recommendations {
+          edges {
+            node {
+              mediaRecommendation {
+                title {
+                  romaji
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    '''
+    variables = {"search": manga_name}
+    
+    response = requests.post(url, json={'query': query, 'variables': variables})
+    if response.status_code == 200:
+        data = response.json()
+        recommendations = data["data"]["Media"]["recommendations"]["edges"]
+        titles = [rec["node"]["mediaRecommendation"]["title"]["romaji"] for rec in recommendations]
+        return titles
+    else:
+        return []
 # Optional: you can use OpenWeatherMap API or any weather service
 API_KEY = "28b970111ddad32e8644cc3c2b71153c"
 

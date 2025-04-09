@@ -10,6 +10,49 @@ from telegram.ext import ContextTypes
 # bot/handlers.py
 from .models import save_favorite, add_progress
 from .utils import fetch_recommendations
+from bot.power_manager import add_power_user, remove_power_user, is_power_user
+
+async def add_power(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if not is_power_user(user_id):
+        await update.message.reply_text("🚫 You're not authorized to add power users.")
+        return
+
+    if not context.args:
+        await update.message.reply_text("Usage: /addpower <user_id>")
+        return
+
+    try:
+        target_id = int(context.args[0])
+    except ValueError:
+        await update.message.reply_text("Invalid user ID.")
+        return
+
+    if add_power_user(target_id):
+        await update.message.reply_text(f"✅ User {target_id} added as a power user.")
+    else:
+        await update.message.reply_text(f"⚠️ User {target_id} is already a power user.")
+
+async def remove_power(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if not is_power_user(user_id):
+        await update.message.reply_text("🚫 You're not authorized to remove power users.")
+        return
+
+    if not context.args:
+        await update.message.reply_text("Usage: /removepower <user_id>")
+        return
+
+    try:
+        target_id = int(context.args[0])
+    except ValueError:
+        await update.message.reply_text("Invalid user ID.")
+        return
+
+    if remove_power_user(target_id):
+        await update.message.reply_text(f"✅ User {target_id} removed from power users.")
+    else:
+        await update.message.reply_text(f"⚠️ User {target_id} was not a power user.")
 
 async def handle_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message:

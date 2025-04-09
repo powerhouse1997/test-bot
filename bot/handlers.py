@@ -3,6 +3,25 @@ from telegram.ext import ContextTypes
 from bot.utils import ask_meta_ai
 from bot.power_manager import is_power_user
 
+async def features(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = (
+        "🤖 *Bot Features:*\n\n"
+        "• 🛡️ /power - Send commands to control the bot\n"
+        "• 📖 /manga - Search Manga from MangaDex\n"
+        "• 💬 /ask - Chat with AI (Meta AI)\n"
+        "• 📝 /todo - Create personal To-Dos\n"
+        "• 🗓️ /summary - Daily summary (Weather + Todos)\n"
+        "• ⏰ /remindme - Set Reminders\n"
+        "• 👥 Auto Welcome - Greets new members\n"
+        "• 📊 Group Stats - Show top active users\n"
+        "• 🔨 Admin Tools - Mute, Kick, Ban, Promote, Demote\n"
+        "• 🔔 Scheduled Announcements - Reminders to group\n"
+        "• ❤️ Save Favorite Manga\n"
+        "• 🔮 Manga Recommendations\n"
+        "• 👑 Only Power Users can control the bot\n"
+    )
+    await update.message.reply_text(text, parse_mode="Markdown")
+
 async def handle_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message:
         text = update.message.text or ""

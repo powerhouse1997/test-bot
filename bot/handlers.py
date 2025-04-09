@@ -7,6 +7,50 @@ from telegram.ext import ContextTypes  # Import ContextTypes
 import aiohttp
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
+# bot/handlers.py
+from .models import save_favorite, add_progress
+from .utils import fetch_recommendations
+
+async def handle_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message:
+        await update.message.reply_text("Type /manga <name> to search manga!")
+
+async def search_manga(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.message.reply_text("Please provide a manga name. Usage: /manga <name>")
+        return
+    
+    manga_name = " ".join(context.args)
+    
+    keyboard = [
+        [InlineKeyboardButton("📥 Download", callback_data=f"download|{manga_name}")],
+        [InlineKeyboardButton("📖 Read Online", url=f"https://manga-website.com/{manga_name.replace(' ', '-')}")],
+        [InlineKeyboardButton("❤️ Save Favorite", callback_data=f"favorite|{manga_name}")],
+        [InlineKeyboardButton("🎯 Get Recommendations", callback_data=f"recommend|{manga_name}")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await update.message.reply_text(f"Here is '{manga_name}' manga:", reply_markup=reply_markup)
+
+async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    action, manga_name = query.data.split("|")
+    
+    if action == "download":
+        await query.edit_message_text(f"Download link for {manga_name}: https://download-link.com/{manga_name.replace(' ', '-')}")
+    elif action == "favorite":
+        save_favorite(query.from_user.id, manga_name)
+        await query.edit_message_text(f"✅ '{manga_name}' saved to your favorites!")
+    elif action == "recommend":
+        recommendations = await fetch_recommendations(manga_name)
+        if recommendations:
+            rec_text = "\n".join(f"• {title}" for title in recommendations)
+            await query.edit_message_text(f"🔮 Recommendations based on '{manga_name}':\n{rec_text}")
+        else:
+            await query.edit_message_text("❌ No recommendations found.")
+
 
 async def search_manga(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = " ".join(context.args)

@@ -7,6 +7,128 @@ from telegram.ext import ContextTypes
 from . import utils, reminders, database, groq
 from .models import save_favorite, add_progress
 from bot.power_manager import add_power_user, remove_power_user, is_power_user
+from telegram import Update, ChatPermissions
+from telegram.ext import ContextTypes
+
+# Helper function to check admin
+async def is_admin(update: Update, user_id: int) -> bool:
+    member = await update.effective_chat.get_member(user_id)
+    return member.status in ["administrator", "creator"]
+
+# Helper function to get target user
+async def get_target_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.reply_to_message:
+        return update.message.reply_to_message.from_user
+    elif context.args:
+        username = context.args[0].lstrip("@")
+        try:
+            user = await context.bot.get_chat_member(update.effective_chat.id, username)
+            return user.user
+        except:
+            await update.message.reply_text("User not found.")
+    else:
+        await update.message.reply_text("Reply to a user or provide username.")
+    return None
+
+# Mute command
+async def mute(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, update.message.from_user.id):
+        return await update.message.reply_text("Only admins can mute!")
+    user = await get_target_user(update, context)
+    if user:
+        await context.bot.restrict_chat_member(
+            update.effective_chat.id,
+            user.id,
+            permissions=ChatPermissions(can_send_messages=False)
+        )
+        await update.message.reply_text(f"Muted {user.mention_html()}", parse_mode="HTML")
+
+# Unmute command
+async def unmute(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, update.message.from_user.id):
+        return await update.message.reply_text("Only admins can unmute!")
+    user = await get_target_user(update, context)
+    if user:
+        await context.bot.restrict_chat_member(
+            update.effective_chat.id,
+            user.id,
+            permissions=ChatPermissions(can_send_messages=True)
+        )
+        await update.message.reply_text(f"Unmuted {user.mention_html()}", parse_mode="HTML")
+
+# Kick command
+async def kick(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, update.message.from_user.id):
+        return await update.message.reply_text("Only admins can kick!")
+    user = await get_target_user(update, context)
+    if user:
+        await context.bot.ban_chat_member(update.effective_chat.id, user.id)
+        await context.bot.unban_chat_member(update.effective_chat.id, user.id)
+        await update.message.reply_text(f"Kicked {user.mention_html()}", parse_mode="HTML")
+
+# Ban command
+async def ban(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, update.message.from_user.id):
+        return await update.message.reply_text("Only admins can ban!")
+    user = await get_target_user(update, context)
+    if user:
+        await context.bot.ban_chat_member(update.effective_chat.id, user.id)
+        await update.message.reply_text(f"Banned {user.mention_html()}", parse_mode="HTML")
+
+# Unban command
+async def unban(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, update.message.from_user.id):
+        return await update.message.reply_text("Only admins can unban!")
+    if context.args:
+        user_id = context.args[0]
+        try:
+            await context.bot.unban_chat_member(update.effective_chat.id, user_id)
+            await update.message.reply_text(f"Unbanned {user_id}")
+        except Exception as e:
+            await update.message.reply_text(f"Error: {e}")
+    else:
+        await update.message.reply_text("Give user ID to unban.")
+
+# Promote command
+async def promote(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, update.message.from_user.id):
+        return await update.message.reply_text("Only admins can promote!")
+    user = await get_target_user(update, context)
+    if user:
+        await context.bot.promote_chat_member(
+            update.effective_chat.id,
+            user.id,
+            can_change_info=True,
+            can_delete_messages=True,
+            can_invite_users=True,
+            can_restrict_members=True,
+            can_pin_messages=True,
+            can_promote_members=False,
+            can_manage_chat=True,
+            can_manage_video_chats=True
+        )
+        await update.message.reply_text(f"Promoted {user.mention_html()}", parse_mode="HTML")
+
+# Demote command
+async def demote(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, update.message.from_user.id):
+        return await update.message.reply_text("Only admins can demote!")
+    user = await get_target_user(update, context)
+    if user:
+        await context.bot.promote_chat_member(
+            update.effective_chat.id,
+            user.id,
+            can_change_info=False,
+            can_delete_messages=False,
+            can_invite_users=False,
+            can_restrict_members=False,
+            can_pin_messages=False,
+            can_promote_members=False,
+            can_manage_chat=False,
+            can_manage_video_chats=False
+        )
+        await update.message.reply_text(f"Demoted {user.mention_html()}", parse_mode="HTML")
+
 
 
 async def add_power(update: Update, context: ContextTypes.DEFAULT_TYPE):

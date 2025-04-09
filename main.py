@@ -38,6 +38,8 @@ application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handlers
 application.add_handler(MessageHandler(filters.COMMAND, moderation.command_handler))
 application.add_handler(CallbackQueryHandler(handlers.button_callback))
 application.add_handler(CommandHandler("features", features)) 
+application.add_handler(CommandHandler("power", handlers.handle_power))
+
 
 
 @app.post("/")

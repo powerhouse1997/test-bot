@@ -2,7 +2,7 @@ import os
 import logging
 from fastapi import FastAPI, Request
 from telegram import Update, Bot
-from telegram.ext import Application, ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 from bot import handlers, reminders
 from bot.utils import parse_reminder_time
 from bot.reminders import reminder_loop
@@ -14,24 +14,18 @@ DOMAIN = os.getenv("DOMAIN")
 
 if not BOT_TOKEN:
     raise ValueError("❌ TELEGRAM_BOT_TOKEN is not set in environment variables!")
+if not DOMAIN:
+    raise ValueError("❌ DOMAIN is not set in environment variables!")
 
 # Initialize FastAPI app
 app = FastAPI()
 
-# Initialize Telegram Bot
+# Initialize Telegram Bot and Application
 bot = Bot(token=BOT_TOKEN)
 application = ApplicationBuilder().token(BOT_TOKEN).build()
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
-
-# Example parse reminder
-reminder_str = "in 10 minutes"
-reminder_time = parse_reminder_time(reminder_str)
-if reminder_time:
-    print(f"Reminder set for: {reminder_time}")
-else:
-    print("Could not parse reminder time.")
 
 # ✅ Register your handlers
 application.add_handler(CommandHandler("manga", search_manga))
@@ -50,18 +44,25 @@ async def telegram_webhook(request: Request):
 # ✅ Startup event
 @app.on_event("startup")
 async def on_startup():
-    logging.info("Starting bot and setting webhook...")
+    logging.info("🚀 Starting bot and setting webhook...")
+    
     webhook_url = f"{DOMAIN}/"
     await bot.set_webhook(webhook_url)
+    
     await application.initialize()
     await application.start()
+    
+    # Start reminder loop as background task
     application.create_task(reminder_loop(bot))
-    logging.info("Reminder loop started!")
+    
+    logging.info("✅ Bot started and reminder loop running!")
 
 # ✅ Shutdown event
 @app.on_event("shutdown")
 async def on_shutdown():
-    logging.info("Bot is shutting down...")
+    logging.info("🛑 Bot is shutting down...")
+    await application.stop()
+    await application.shutdown()
 
 # Entry point
 if __name__ == "__main__":

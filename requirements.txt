@@ -15,6 +15,5 @@ google-auth-httplib2
 google-auth-oauthlib
 aiofiles
 apscheduler
-requests
-sqlite3 
+requests 
 apscheduler

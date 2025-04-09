@@ -2,6 +2,23 @@ import json
 import os
 import asyncio
 import datetime
+# bot/reminders.py
+from bot.models import get_favorites
+
+async def reminder_loop(bot):
+    while True:
+        print("🔎 Checking for new manga releases...")
+        
+        # Example: Notify all users about a fake new chapter
+        # In real, you should integrate MangaDex / other API
+        users = [12345678]  # Fake user ID list
+        for user_id in users:
+            favorites = get_favorites(user_id)
+            for manga in favorites:
+                await bot.send_message(user_id, text=f"🔥 New chapter released for '{manga}'!")
+        
+        await asyncio.sleep(3600)  # Sleep 1 hour
+
 
 REMINDERS_FILE = "reminders.json"
 reminders = {}

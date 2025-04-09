@@ -2,6 +2,69 @@ from . import utils, reminders, database, groq
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram import Update
 from telegram.ext import ContextTypes  # Import ContextTypes
+# handlers.py
+
+import aiohttp
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import ContextTypes
+
+async def search_manga(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = " ".join(context.args)
+    if not query:
+        await update.message.reply_text("❗ Please provide a manga name. Example: /manga Naruto")
+        return
+
+    msg = await update.message.reply_text("🔎 Searching MangaDex...")
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(f"https://api.mangadex.org/manga?title={query}&limit=3") as response:
+            data = await response.json()
+
+    if "data" not in data or not data["data"]:
+        await msg.edit_text("❌ No manga found.")
+        return
+
+    for manga in data["data"]:
+        manga_id = manga["id"]
+        attributes = manga["attributes"]
+        title = attributes["title"].get("en", "Unknown Title")
+        description = attributes.get("description", {}).get("en", "No description available.")
+        truncated_description = (description[:400] + "...") if len(description) > 400 else description
+
+        # Get Cover Art
+        cover_file_name = None
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"https://api.mangadex.org/cover?manga[]={manga_id}") as cover_response:
+                cover_data = await cover_response.json()
+                if cover_data.get("data"):
+                    cover_file_name = cover_data["data"][0]["attributes"]["fileName"]
+
+        cover_url = f"https://uploads.mangadex.org/covers/{manga_id}/{cover_file_name}.256.jpg" if cover_file_name else None
+
+        # MangaDex URL
+        manga_url = f"https://mangadex.org/title/{manga_id}"
+
+        buttons = [[
+            InlineKeyboardButton("📖 Read on MangaDex", url=manga_url)
+        ]]
+        reply_markup = InlineKeyboardMarkup(buttons)
+
+        if cover_url:
+            await update.message.reply_photo(
+                photo=cover_url,
+                caption=f"*{title}*\n\n{truncated_description}",
+                parse_mode="Markdown",
+                reply_markup=reply_markup
+            )
+        else:
+            await update.message.reply_text(
+                f"*{title}*\n\n{truncated_description}\n\n🔗 [Read on MangaDex]({manga_url})",
+                parse_mode="Markdown",
+                reply_markup=reply_markup
+            )
+
+    await msg.delete()
+
 
 async def handle_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
     from bot.database import todos  # moved inside to avoid cyclic imports

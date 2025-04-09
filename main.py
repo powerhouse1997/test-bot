@@ -14,6 +14,7 @@ from bot import handlers, moderation, welcome, stats, scheduler
 from bot.utils import parse_reminder_time
 from bot.power_manager import load_power_users
 from bot.scheduler import reminder_loop
+from bot.handlers import features
 
 # Load environment variables
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -36,6 +37,8 @@ application.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, we
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handlers.chat_handler))
 application.add_handler(MessageHandler(filters.COMMAND, moderation.command_handler))
 application.add_handler(CallbackQueryHandler(handlers.button_callback))
+application.add_handler(CommandHandler("features", features)) 
+
 
 @app.post("/")
 async def telegram_webhook(request: Request):

@@ -15,6 +15,10 @@ from bot.utils import parse_reminder_time
 from bot.reminders import reminder_loop
 from bot.handlers import search_manga
 from bot.models import init_db
+from bot.handlers import add_power, remove_power
+
+application.add_handler(CommandHandler("addpower", add_power))
+application.add_handler(CommandHandler("removepower", remove_power))
 
 # Load environment variables
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")

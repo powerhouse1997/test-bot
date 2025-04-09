@@ -6,7 +6,7 @@ from telegram.ext import Application, ApplicationBuilder, CommandHandler, Callba
 from bot import handlers, reminders
 from bot.utils import parse_reminder_time
 from bot.reminders import reminder_loop
-from handlers import search_manga
+from .handlers import search_manga
 
 # Load environment variables
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")

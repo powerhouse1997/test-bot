@@ -1,6 +1,6 @@
 import asyncio
 import datetime
-from bot.models import get_all_reminders, delete_reminder
+from bot.models import delete_reminder
 
 
 async def send_reminder(bot, chat_id, text, delay_seconds):

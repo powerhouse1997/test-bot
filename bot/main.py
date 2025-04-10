@@ -36,7 +36,7 @@ application.add_handler(CommandHandler("summary", handlers.daily_summary))
 application.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, welcome.welcome_new_member))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handlers.chat_handler))
 application.add_handler(MessageHandler(filters.COMMAND, moderation.command_handler))
-application.add_handler(CallbackQueryHandler(handlers.button_callback))
+#application.add_handler(CallbackQueryHandler(handlers.button_callback))
 application.add_handler(CommandHandler("features", features)) 
 application.add_handler(CommandHandler("power", handlers.handle_power))
 

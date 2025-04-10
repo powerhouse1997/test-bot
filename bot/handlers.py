@@ -12,6 +12,9 @@ async def daily_summary(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def power_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("I have admin powers!")
 
+async def chat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(f"You said: {update.message.text}")
+
 async def features(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
         "🤖 *Bot Features:*\n\n"

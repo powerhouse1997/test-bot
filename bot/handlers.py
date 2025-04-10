@@ -15,6 +15,9 @@ async def power_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def chat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"You said: {update.message.text}")
 
+async def command_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Unknown command. Please use a valid command!")
+
 async def features(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
         "🤖 *Bot Features:*\n\n"

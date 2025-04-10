@@ -1,4 +1,6 @@
 from telegram import ChatPermissions
+from telegram import Update
+from telegram.ext import ContextTypes
 
 async def mute_user(update, context):
     if not update.message.reply_to_message:

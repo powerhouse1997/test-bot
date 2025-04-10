@@ -6,6 +6,9 @@ from telegram import ChatPermissions
 from telegram import Update
 from telegram.ext import ContextTypes
 
+async def daily_summary(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("This is your daily summary!")
+
 async def power_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("I have admin powers!")
 

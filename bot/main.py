@@ -21,9 +21,9 @@ async def start(update: Update, context):
 async def news(update: Update, context):
     await update.message.reply_text("📰 Fetching top news...")
 
-    # Fetch from multiple sources
+    # News sources (updated Crunchyroll)
     sources = [
-        ("Crunchyroll", "https://www.crunchyroll.com/news/rss"),
+        ("Crunchyroll", "https://cr-news-api-service.prd.crunchyrollsvc.com/v1/en-US/rss"),
         ("MyAnimeList", "https://myanimelist.net/rss/news.xml"),
         ("ANN", "https://www.animenewsnetwork.com/all/rss.xml"),
         ("Kotaku", "https://kotaku.com/rss"),

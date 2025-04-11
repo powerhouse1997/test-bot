@@ -4,18 +4,19 @@ import logging
 import os
 import requests
 from fastapi import FastAPI
-from telegram import Update, Bot, InputMediaPhoto
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from dotenv import load_dotenv
+from telegram import Update, Bot
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 # Load environment variables
 load_dotenv()
-
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-GROUP_CHAT_ID = os.getenv("CHAT_ID")
+GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID")
 
+# Initialize FastAPI app
 app = FastAPI()
 
+# Initialize Telegram bot
 bot_app = ApplicationBuilder().token(BOT_TOKEN).build()
 bot = Bot(BOT_TOKEN)
 
@@ -41,36 +42,54 @@ def fetch_rss(url):
         })
     return entries
 
-# Auto fetch news
+# Auto fetch latest news
 async def fetch_latest_news():
     global latest_news, latest_manga_news
     while True:
-        anime_news = fetch_rss("https://www.animenewsnetwork.com/all/rss.xml")
-        manga_news = fetch_rss("https://myanimelist.net/rss/news.xml")
+        try:
+            anime_news = fetch_rss("https://www.animenewsnetwork.com/all/rss.xml")
+            manga_news = fetch_rss("https://myanimelist.net/rss/news.xml")
 
-        # Check if new news arrived
-        if anime_news and (not latest_news or anime_news[0]['link'] != latest_news[0]['link']):
-            latest_news = anime_news
-            await send_news_to_group(latest_news, category="Anime")
+            # Check if new anime news
+            if anime_news and (not latest_news or anime_news[0]['link'] != latest_news[0]['link']):
+                latest_news = anime_news
+                await send_news_to_group(latest_news, category="Anime")
 
-        if manga_news and (not latest_manga_news or manga_news[0]['link'] != latest_manga_news[0]['link']):
-            latest_manga_news = manga_news
-            await send_news_to_group(latest_manga_news, category="Manga")
+            # Check if new manga news
+            if manga_news and (not latest_manga_news or manga_news[0]['link'] != latest_manga_news[0]['link']):
+                latest_manga_news = manga_news
+                await send_news_to_group(latest_manga_news, category="Manga")
+
+        except Exception as e:
+            logging.error(f"Error fetching news: {e}")
 
         await asyncio.sleep(600)  # Wait 10 minutes
 
-# Send news to group automatically
+# Send news automatically to group
 async def send_news_to_group(news_list, category="News"):
     if not news_list:
         return
     first_news = news_list[0]
-    caption = f"📰 <b>{category} News:</b> {first_news['title']}\n\n📝 {first_news['summary'][:300]}...\n\n🔗 <a href='{first_news['link']}'>Read Full</a>"
+    caption = (
+        f"📰 <b>{category} News:</b> {first_news['title']}\n\n"
+        f"📝 {first_news['summary'][:300]}...\n\n"
+        f"🔗 <a href='{first_news['link']}'>Read Full</a>"
+    )
 
     try:
         if first_news['thumbnail']:
-            await bot.send_photo(chat_id=GROUP_CHAT_ID, photo=first_news['thumbnail'], caption=caption, parse_mode="HTML")
+            await bot.send_photo(
+                chat_id=GROUP_CHAT_ID,
+                photo=first_news['thumbnail'],
+                caption=caption,
+                parse_mode="HTML"
+            )
         else:
-            await bot.send_message(chat_id=GROUP_CHAT_ID, text=caption, parse_mode="HTML")
+            await bot.send_message(
+                chat_id=GROUP_CHAT_ID,
+                text=caption,
+                parse_mode="HTML"
+            )
     except Exception as e:
         logging.error(f"Error sending news: {e}")
 
@@ -88,27 +107,39 @@ async def latest_manga_command(update: Update, context: ContextTypes.DEFAULT_TYP
         return
     await send_news_list(update, latest_manga_news, "Manga")
 
-# Send news to user
+# Send news list to user on command
 async def send_news_list(update, news_list, category="News"):
     for news in news_list:
-        caption = f"📰 <b>{category} News:</b> {news['title']}\n\n📝 {news['summary'][:300]}...\n\n🔗 <a href='{news['link']}'>Read Full</a>"
+        caption = (
+            f"📰 <b>{category} News:</b> {news['title']}\n\n"
+            f"📝 {news['summary'][:300]}...\n\n"
+            f"🔗 <a href='{news['link']}'>Read Full</a>"
+        )
         try:
             if news['thumbnail']:
-                await update.message.reply_photo(photo=news['thumbnail'], caption=caption, parse_mode="HTML")
+                await update.message.reply_photo(
+                    photo=news['thumbnail'],
+                    caption=caption,
+                    parse_mode="HTML"
+                )
             else:
-                await update.message.reply_text(text=caption, parse_mode="HTML")
+                await update.message.reply_text(
+                    text=caption,
+                    parse_mode="HTML"
+                )
         except Exception as e:
-            logging.error(f"Error sending news: {e}")
+            logging.error(f"Error sending user news: {e}")
 
-# Telegram bot setup
+# Register commands
 bot_app.add_handler(CommandHandler("latestnews", latest_news_command))
 bot_app.add_handler(CommandHandler("latestmanga", latest_manga_command))
 
 @app.on_event("startup")
 async def on_startup():
     asyncio.create_task(fetch_latest_news())
-    asyncio.create_task(bot_app.start())
+    asyncio.create_task(bot_app.run_polling())
 
+# FastAPI health check
 @app.get("/")
 def read_root():
     return {"message": "Bot is running!"}

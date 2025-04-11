@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Your bot token and chat ID
-TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 
 bot = Bot(token=TOKEN)

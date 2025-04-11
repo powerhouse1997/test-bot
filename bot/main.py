@@ -11,7 +11,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 load_dotenv()
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID")
-WEBHOOK_URL = os.getenv("DOMAIN")  # You need to set this in your .env!
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # You need to set this in your .env!
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -158,4 +158,11 @@ async def telegram_webhook(token: str, request: Request):
         return {"status": "invalid token"}
 
     data = await request.json()
-    update =
+    update = Update.de_json(data, bot_app.bot)
+    await bot_app.process_update(update)
+    return {"status": "ok"}
+
+# FastAPI root route
+@app.get("/")
+def read_root():
+    return {"message": "Bot is running!"}

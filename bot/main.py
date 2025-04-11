@@ -4,7 +4,6 @@ import feedparser
 import aiohttp
 from bs4 import BeautifulSoup
 import os
-
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 import uvicorn
@@ -60,17 +59,13 @@ async def telegram_webhook(request: Request):
     await application.update_queue.put(update)
     return {"status": "ok"}
 
-def main():
-    import asyncio
-
-    async def run():
-        # Set webhook
-        await application.bot.set_webhook(url=f"{APP_URL}/bot{TOKEN}")
-        print(f"Webhook set to {APP_URL}/bot{TOKEN}")
-
-    asyncio.run(run())
+# FastAPI startup event
+@app.on_event("startup")
+async def startup_event():
+    await application.bot.set_webhook(url=f"{APP_URL}/bot{TOKEN}")
+    print(f"Webhook set to {APP_URL}/bot{TOKEN}")
+    await application.start()
 
 if __name__ == "__main__":
-    main()
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port)

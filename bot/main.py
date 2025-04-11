@@ -1,23 +1,30 @@
 from telegram.ext import ApplicationBuilder, CommandHandler
+from telegram import Update
 import feedparser
 import aiohttp
 from bs4 import BeautifulSoup
 import os
 
-# Load your .env (optional if you use Railway variables directly)
 from dotenv import load_dotenv
+from fastapi import FastAPI, Request
+import uvicorn
+
 load_dotenv()
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 APP_URL = os.getenv("DOMAIN")  # Like "https://your-app.up.railway.app"
 
-async def start(update, context):
+app = FastAPI()
+application = ApplicationBuilder().token(TOKEN).build()
+
+# Commands
+async def start(update: Update, context):
     await update.message.reply_text("👋 Welcome! Bot is working.")
 
-async def get_news(update, context):
+async def get_news(update: Update, context):
     await update.message.reply_text("📰 Here’s some latest news...")
-    
-# News fetching functions
+
+# News functions
 def fetch_ann_news():
     feed = feedparser.parse('https://www.animenewsnetwork.com/all/rss.xml')
     latest = feed.entries[0]
@@ -41,19 +48,29 @@ async def fetch_crunchyroll_news():
                 return f"🎬 Crunchyroll: {title}\n{link}"
             return "🎬 Crunchyroll: No news found."
 
+# Setup handlers
+application.add_handler(CommandHandler("start", start))
+application.add_handler(CommandHandler("news", get_news))
 
-# Command handlers
+# FastAPI webhook route
+@app.post(f"/bot{TOKEN}")
+async def telegram_webhook(request: Request):
+    data = await request.json()
+    update = Update.de_json(data, application.bot)
+    await application.update_queue.put(update)
+    return {"status": "ok"}
+
 def main():
-    app = ApplicationBuilder().token(TOKEN).build()
+    import asyncio
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("news", get_news))
+    async def run():
+        # Set webhook
+        await application.bot.set_webhook(url=f"{APP_URL}/bot{TOKEN}")
+        print(f"Webhook set to {APP_URL}/bot{TOKEN}")
 
-    app.run_webhook(
-        listen="0.0.0.0",
-        port=8000,
-        webhook_url="https://test-bot-production-02c3.up.railway.app/webhook7853195961:AAHFMQm9fbvVNXvDbq2Kv192_HvOxTK0gHY",
-    )
+    asyncio.run(run())
 
 if __name__ == "__main__":
     main()
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)

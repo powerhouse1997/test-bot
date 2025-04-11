@@ -11,7 +11,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 load_dotenv()
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # You need to set this in your .env!
+DOMAIN = os.getenv("DOMAIN")  # <-- ADD THIS
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -91,19 +91,21 @@ async def send_news_to_group(news_list, category="News"):
     except Exception as e:
         logging.error(f"Error sending news: {e}")
 
-# Commands
+# Command: /latestnews
 async def latest_news_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not latest_news:
         await update.message.reply_text("No anime news available yet. Please try again later.")
         return
     await send_news_list(update, latest_news, "Anime")
 
+# Command: /latestmanga
 async def latest_manga_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not latest_manga_news:
         await update.message.reply_text("No manga news available yet. Please try again later.")
         return
     await send_news_list(update, latest_manga_news, "Manga")
 
+# Command: /news
 async def news_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not latest_news and not latest_manga_news:
         await update.message.reply_text("No news available yet. Please try again later.")
@@ -145,22 +147,19 @@ bot_app.add_handler(CommandHandler("latestnews", latest_news_command))
 bot_app.add_handler(CommandHandler("latestmanga", latest_manga_command))
 bot_app.add_handler(CommandHandler("news", news_command))
 
-# FastAPI startup event
+# Startup event: Set webhook
 @app.on_event("startup")
 async def on_startup():
-    await bot_app.bot.set_webhook(url=f"{WEBHOOK_URL}/webhook/{BOT_TOKEN}")
+    webhook_url = f"{DOMAIN}/webhook"  # <-- use DOMAIN from .env
+    await bot_app.bot.set_webhook(webhook_url)
     asyncio.create_task(fetch_latest_news())
 
-# FastAPI route to receive Telegram updates
-@app.post("/webhook/{token}")
-async def telegram_webhook(token: str, request: Request):
-    if token != BOT_TOKEN:
-        return {"status": "invalid token"}
-
-    data = await request.json()
-    update = Update.de_json(data, bot_app.bot)
-    await bot_app.process_update(update)
-    return {"status": "ok"}
+# Webhook endpoint
+@app.post("/webhook")
+async def webhook(request: Request):
+    update = await request.json()
+    await bot_app.update_queue.put(Update.de_json(update, bot_app.bot))
+    return {"ok": True}
 
 # FastAPI root route
 @app.get("/")

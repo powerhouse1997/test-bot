@@ -2,7 +2,8 @@ import asyncio
 import feedparser
 import logging
 import os
-import requests
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from dotenv import load_dotenv
 from telegram import Update, Bot
@@ -12,9 +13,6 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 load_dotenv()
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID")
-
-# Initialize FastAPI app
-app = FastAPI()
 
 # Initialize Telegram bot
 bot_app = ApplicationBuilder().token(BOT_TOKEN).build()
@@ -50,12 +48,10 @@ async def fetch_latest_news():
             anime_news = fetch_rss("https://www.animenewsnetwork.com/all/rss.xml")
             manga_news = fetch_rss("https://myanimelist.net/rss/news.xml")
 
-            # Check if new anime news
             if anime_news and (not latest_news or anime_news[0]['link'] != latest_news[0]['link']):
                 latest_news = anime_news
                 await send_news_to_group(latest_news, category="Anime")
 
-            # Check if new manga news
             if manga_news and (not latest_manga_news or manga_news[0]['link'] != latest_manga_news[0]['link']):
                 latest_manga_news = manga_news
                 await send_news_to_group(latest_manga_news, category="Manga")
@@ -134,10 +130,20 @@ async def send_news_list(update, news_list, category="News"):
 bot_app.add_handler(CommandHandler("latestnews", latest_news_command))
 bot_app.add_handler(CommandHandler("latestmanga", latest_manga_command))
 
-@app.on_event("startup")
-async def on_startup():
+# FastAPI lifespan for startup/shutdown
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
     asyncio.create_task(fetch_latest_news())
-    asyncio.create_task(bot_app.run_polling())
+    await bot_app.initialize()
+    await bot_app.start()
+    yield
+    # Shutdown
+    await bot_app.stop()
+    await bot_app.shutdown()
+
+# Initialize FastAPI app
+app = FastAPI(lifespan=lifespan)
 
 # FastAPI health check
 @app.get("/")

@@ -14,7 +14,7 @@ BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID")
 DOMAIN = os.getenv("DOMAIN")
 
-bot = Bot(token=TOKEN)
+bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 scheduler = AsyncIOScheduler()
 

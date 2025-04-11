@@ -12,14 +12,14 @@ import asyncio
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 APP_URL = os.getenv("DOMAIN")  # Railway ENV
 CHAT_ID = os.getenv("CHAT_ID")  # Save your chat ID in Railway ENV
-POST_INTERVAL = 2 * 60 * 60  # 2 hours in seconds
+POST_INTERVAL = 2 * 60 * 60  # 2 hours
 
 app = FastAPI()
 application = ApplicationBuilder().token(TOKEN).build()
 
 last_posted_titles = set()
 
-# 🔥 Fetch news from Crunchyroll RSS
+# 🔥 Fetch news
 async def fetch_crunchyroll_news():
     url = "https://cr-news-api-service.prd.crunchyrollsvc.com/v1/en-US/rss"
     async with aiohttp.ClientSession() as session:
@@ -36,7 +36,7 @@ async def fetch_crunchyroll_news():
                     news.append((title, link))
             return news
 
-# 🎯 Send news to a chat
+# 🎯 Send news
 async def send_news(update: Update = None, context: ContextTypes.DEFAULT_TYPE = None):
     global last_posted_titles
     news = await fetch_crunchyroll_news()
@@ -79,7 +79,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("❓ Please use the buttons below!")
 
-# ⏰ Auto Post Task
+# ⏰ Auto Post Task (separated correctly)
+@app.on_event("startup")
+async def on_startup():
+    # Set webhook when FastAPI starts
+    await application.bot.set_webhook(url=f"{APP_URL}/bot{TOKEN}")
+    print(f"Webhook set: {APP_URL}/bot{TOKEN}")
+
+    # Start auto-post task
+    asyncio.create_task(auto_post())
+
 async def auto_post():
     while True:
         await send_news()
@@ -92,18 +101,9 @@ async def telegram_webhook(request: Request):
     await application.update_queue.put(update)
     return {"status": "ok"}
 
-def main():
-    async def run():
-        await application.bot.set_webhook(url=f"{APP_URL}/bot{TOKEN}")
-        print(f"Webhook set: {APP_URL}/bot{TOKEN}")
-        asyncio.create_task(auto_post())
-
-    asyncio.run(run())
-
 if __name__ == "__main__":
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    main()
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port)

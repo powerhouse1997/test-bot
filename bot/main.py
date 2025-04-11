@@ -36,31 +36,17 @@ async def fetch_crunchyroll_news():
             return "🎬 Crunchyroll: No news found."
 
 # Command handlers
-async def start(update, context):
-    await update.message.reply_text('Hello! Send /news to get the latest anime news.')
-
-async def get_news(update, context):
-    ann = fetch_ann_news()
-    natalie = fetch_natalie_news()
-    crunchy = await fetch_crunchyroll_news()
-
-    news_message = f"{ann}\n\n{natalie}\n\n{crunchy}"
-    await update.message.reply_text(news_message)
-
-# Main Bot
-async def main():
+def main():
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("news", get_news))
 
-    # 🔥 Running webhook
-    await app.run_webhook(
+    app.run_webhook(
         listen="0.0.0.0",
-        port=int(os.environ.get('PORT', 8443)),
-        webhook_url=f"{APP_URL}/{TOKEN}"
+        port=8000,
+        webhook_url="https://your-app.up.railway.app/" + TOKEN,
     )
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    main()

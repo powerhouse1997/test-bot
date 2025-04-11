@@ -50,7 +50,7 @@ async def get_news(update, context):
     mal = fetch_mal_news()
     animeuk = fetch_animeuk_news()
 
-    news_message = f"{ann}\n\n{natalie}\n\n{crunchy}\n\n{mal}\n\n{animeuk}\n\n{otakuusa}"
+    news_message = f"{ann}\n\n{crunchy}\n\n{mal}\n\n{animeuk}\n\n{otakuusa}"
     await update.message.reply_text(news_message)
 
 

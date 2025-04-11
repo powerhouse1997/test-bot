@@ -1,68 +1,90 @@
-from telegram.ext import ApplicationBuilder, CommandHandler
-from telegram import Update
 from fastapi import FastAPI, Request
-import feedparser
-import asyncio
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import (
+    ApplicationBuilder, CommandHandler, MessageHandler,
+    ContextTypes, filters
+)
+import aiohttp
 import os
 import uvicorn
+import asyncio
 
-# Load environment variables (Railway env vars)
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-APP_URL = os.getenv("DOMAIN")
-CHAT_ID = os.getenv("CHAT_ID")  # Chat ID required
+APP_URL = os.getenv("DOMAIN")  # Railway ENV
+CHAT_ID = os.getenv("CHAT_ID")  # Save your chat ID in Railway ENV
+POST_INTERVAL = 2 * 60 * 60  # 2 hours in seconds
 
 app = FastAPI()
 application = ApplicationBuilder().token(TOKEN).build()
 
-# News sources (English only, anime/manga focused)
-sources = [
-    ("Crunchyroll", "https://cr-news-api-service.prd.crunchyrollsvc.com/v1/en-US/rss"),
-]
+last_posted_titles = set()
 
-# Store sent links to avoid reposting
-sent_links = set()
+# 🔥 Fetch news from Crunchyroll RSS
+async def fetch_crunchyroll_news():
+    url = "https://cr-news-api-service.prd.crunchyrollsvc.com/v1/en-US/rss"
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            text = await resp.text()
+            from xml.etree import ElementTree as ET
+            root = ET.fromstring(text)
+            items = root.findall('.//item')
+            news = []
+            for item in items[:10]:  # Top 10
+                title = item.find('title').text
+                link = item.find('link').text
+                if any(word in title.lower() for word in ["anime", "manga"]):
+                    news.append((title, link))
+            return news
 
-# 🎯 /start Command
-async def start(update: Update, context):
-    await update.message.reply_text("👋 Welcome! Auto-news Bot is running!")
+# 🎯 Send news to a chat
+async def send_news(update: Update = None, context: ContextTypes.DEFAULT_TYPE = None):
+    global last_posted_titles
+    news = await fetch_crunchyroll_news()
+    new_news = [n for n in news if n[0] not in last_posted_titles]
 
-# 🎯 /news Command (Manual)
-async def get_news(update: Update, context):
-    await send_news()
+    if not new_news:
+        if update:
+            await update.message.reply_text("🛑 No new anime/manga updates.")
+        return
 
-application.add_handler(CommandHandler("start", start))
-application.add_handler(CommandHandler("news", get_news))
+    for title, link in new_news:
+        message = f"🆕 *{title}*\n🔗 [Read More]({link})"
+        if update:
+            await update.message.reply_markdown(message)
+        else:
+            await application.bot.send_message(chat_id=CHAT_ID, text=message, parse_mode="Markdown")
+        last_posted_titles.add(title)
 
-# 📰 Fetch and Send News
-async def send_news():
-    for name, url in sources:
-        feed = feedparser.parse(url)
-        for entry in feed.entries[:10]:  # Top 10 news
-            title = entry.title
-            link = entry.link
-            # Only anime/manga related
-            if not any(word in title.lower() for word in ["anime", "manga"]):
-                continue
-            if link in sent_links:
-                continue  # Already sent
+# 🎛 Keyboard
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [["📰 Get News Now"], ["ℹ️ Help"]]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    await update.message.reply_text(
+        "👋 Welcome! Please choose an option:",
+        reply_markup=reply_markup
+    )
 
-            sent_links.add(link)
-            text = f"🌟 <b>New update from {name}!</b>\n\n📰 <b>{title}</b>\n🔗 {link}"
-            await application.bot.send_message(
-                chat_id=CHAT_ID,
-                text=text,
-                parse_mode="HTML"
-            )
-            await asyncio.sleep(2)  # Tiny pause between messages
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
 
-# 🔄 Auto-post news every X seconds
-async def auto_post_news():
-    await application.bot.delete_webhook(drop_pending_updates=True)
+    if text == "📰 Get News Now":
+        await send_news(update, context)
+    elif text == "ℹ️ Help":
+        await update.message.reply_text(
+            "ℹ️ I fetch latest *anime* and *manga* news!\n"
+            "Press '📰 Get News Now' to check manually.\n"
+            "Auto-post runs every 2 hours. 🔥",
+            parse_mode="Markdown"
+        )
+    else:
+        await update.message.reply_text("❓ Please use the buttons below!")
+
+# ⏰ Auto Post Task
+async def auto_post():
     while True:
         await send_news()
-        await asyncio.sleep(2 * 60 * 60)  # ⏰ Every 2 hours (adjust if needed)
+        await asyncio.sleep(POST_INTERVAL)
 
-# 📡 Webhook endpoint
 @app.post(f"/bot{TOKEN}")
 async def telegram_webhook(request: Request):
     data = await request.json()
@@ -70,15 +92,18 @@ async def telegram_webhook(request: Request):
     await application.update_queue.put(update)
     return {"status": "ok"}
 
-# 🛠 Main Function
 def main():
     async def run():
         await application.bot.set_webhook(url=f"{APP_URL}/bot{TOKEN}")
-        asyncio.create_task(auto_post_news())
+        print(f"Webhook set: {APP_URL}/bot{TOKEN}")
+        asyncio.create_task(auto_post())
 
     asyncio.run(run())
 
 if __name__ == "__main__":
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
     main()
     port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("bot.main:app", host="0.0.0.0", port=port)
+    uvicorn.run("main:app", host="0.0.0.0", port=port)

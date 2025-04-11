@@ -6,7 +6,6 @@ from fastapi import FastAPI, Request
 from dotenv import load_dotenv
 from telegram import Update, Bot
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
-from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -24,43 +23,22 @@ bot = Bot(BOT_TOKEN)
 latest_news = []
 latest_manga_news = []
 
-# Sources
-ANIME_SOURCES = [
-    "https://www.animenewsnetwork.com/all/rss.xml",
-    "https://www.crunchyroll.com/newsrss",
-    "https://www.animenewsnetwork.com/news/rss.xml?category=anime",
-    "https://www.animenewsnetwork.com/news/rss.xml?category=interest",
-]
-
-MANGA_SOURCES = [
-    "https://myanimelist.net/rss/news.xml",
-    "https://www.animenewsnetwork.com/news/rss.xml?category=manga",
-]
-
 # Fetch RSS feed
 def fetch_rss(url):
     feed = feedparser.parse(url)
     entries = []
-    for entry in feed.entries[:5]:  # Latest 5 news per feed
+    for entry in feed.entries[:5]:  # Latest 5 news
         thumbnail = ""
-        if "media_content" in entry:
-            thumbnail = entry.media_content[0]['url']
-        elif "media_thumbnail" in entry:
+        if "media_thumbnail" in entry:
             thumbnail = entry.media_thumbnail[0]['url']
-        
-        published = entry.get('published', '')
-        if published:
-            try:
-                published = datetime(*entry.published_parsed[:6]).strftime('%Y-%m-%d %H:%M')
-            except Exception:
-                pass
-        
+        elif "media_content" in entry:
+            thumbnail = entry.media_content[0]['url']
         entries.append({
             'title': entry.title,
             'link': entry.link,
             'summary': entry.summary,
             'thumbnail': thumbnail,
-            'published': published
+            'published': entry.get("published", "Unknown date")
         })
     return entries
 
@@ -69,69 +47,53 @@ async def fetch_latest_news():
     global latest_news, latest_manga_news
     while True:
         try:
-            anime_news = []
-            for url in ANIME_SOURCES:
-                anime_news.extend(fetch_rss(url))
-            
-            manga_news = []
-            for url in MANGA_SOURCES:
-                manga_news.extend(fetch_rss(url))
+            anime_news = fetch_rss("https://www.animenewsnetwork.com/all/rss.xml")
+            manga_news = fetch_rss("https://myanimelist.net/rss/news.xml")
 
-            # Remove duplicate news by link
-            anime_news = {item['link']: item for item in anime_news}.values()
-            manga_news = {item['link']: item for item in manga_news}.values()
+            if anime_news and (not latest_news or anime_news[0]['link'] != latest_news[0]['link']):
+                latest_news = anime_news
+                await send_bulk_news(latest_news, category="Anime")
 
-            anime_news = sorted(anime_news, key=lambda x: x['published'], reverse=True)
-            manga_news = sorted(manga_news, key=lambda x: x['published'], reverse=True)
-
-            # Send only new news
-            if anime_news and (not latest_news or list(anime_news)[0]['link'] != latest_news[0]['link']):
-                new_anime_news = [n for n in anime_news if n['link'] != latest_news[0]['link']] if latest_news else list(anime_news)
-                latest_news = list(anime_news)
-                for news in new_anime_news:
-                    await send_news_to_group(news, category="Anime")
-                    await asyncio.sleep(1)  # Avoid flood control
-
-            if manga_news and (not latest_manga_news or list(manga_news)[0]['link'] != latest_manga_news[0]['link']):
-                new_manga_news = [n for n in manga_news if n['link'] != latest_manga_news[0]['link']] if latest_manga_news else list(manga_news)
-                latest_manga_news = list(manga_news)
-                for news in new_manga_news:
-                    await send_news_to_group(news, category="Manga")
-                    await asyncio.sleep(1)  # Avoid flood control
+            if manga_news and (not latest_manga_news or manga_news[0]['link'] != latest_manga_news[0]['link']):
+                latest_manga_news = manga_news
+                await send_bulk_news(latest_manga_news, category="Manga")
 
         except Exception as e:
             logging.error(f"Error fetching news: {e}")
 
         await asyncio.sleep(600)  # 10 minutes
 
-# Send news automatically to group
-async def send_news_to_group(news, category="News"):
-    if not news:
+# Send multiple news with flood control
+async def send_bulk_news(news_list, category="News"):
+    if not news_list:
         return
-    
-    caption = (
-        f"📰 <b>{category} News:</b> {news['title']}\n"
-        f"🗓 <b>Published:</b> {news['published']}\n\n"
-        f"📝 {news['summary'][:300]}...\n\n"
-        f"🔗 <a href='{news['link']}'>Read Full</a>"
-    )
 
-    try:
-        if news['thumbnail']:
-            await bot.send_photo(
-                chat_id=GROUP_CHAT_ID,
-                photo=news['thumbnail'],
-                caption=caption,
-                parse_mode="HTML"
-            )
-        else:
-            await bot.send_message(
-                chat_id=GROUP_CHAT_ID,
-                text=caption,
-                parse_mode="HTML"
-            )
-    except Exception as e:
-        logging.error(f"Error sending news: {e}")
+    for news in news_list:
+        caption = (
+            f"📰 <b>{category} News:</b> {news['title']}\n"
+            f"🗓 <b>Published:</b> {news['published']}\n\n"
+            f"📝 {news['summary'][:300]}...\n\n"
+            f"🔗 <a href='{news['link']}'>Read Full</a>"
+        )
+
+        try:
+            if news['thumbnail']:
+                await bot.send_photo(
+                    chat_id=GROUP_CHAT_ID,
+                    photo=news['thumbnail'],
+                    caption=caption,
+                    parse_mode="HTML"
+                )
+            else:
+                await bot.send_message(
+                    chat_id=GROUP_CHAT_ID,
+                    text=caption,
+                    parse_mode="HTML"
+                )
+            await asyncio.sleep(1.5)  # Delay to avoid flood control
+        except Exception as e:
+            logging.error(f"Error sending news: {e}")
+            await asyncio.sleep(30)  # If flood, wait longer
 
 # Command: /latestnews
 async def latest_news_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -149,27 +111,37 @@ async def latest_manga_command(update: Update, context: ContextTypes.DEFAULT_TYP
 
 # Command: /news
 async def news_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not latest_news and not latest_manga_news:
-        await update.message.reply_text("No news available yet. Please try again later.")
-        return
-
     if update.effective_chat.id != int(GROUP_CHAT_ID):
         await update.message.reply_text("This command can only be used in the group!")
         return
+    await send_bulk_news(latest_news, category="Anime")
+    await send_bulk_news(latest_manga_news, category="Manga")
+    await update.message.reply_text("All today's news sent!")
 
-    for news in latest_news[:5]:
-        await send_news_to_group(news, category="Anime")
-        await asyncio.sleep(1)  # Sleep to avoid flood
+# Command: /anime
+async def anime_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await send_bulk_news(latest_news, category="Anime")
 
-    for news in latest_manga_news[:5]:
-        await send_news_to_group(news, category="Manga")
-        await asyncio.sleep(1)  # Sleep to avoid flood
+# Command: /manga
+async def manga_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await send_bulk_news(latest_manga_news, category="Manga")
 
-    await update.message.reply_text("Latest anime and manga news sent to the group!")
+# Command: /help
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    help_text = (
+        "Available Commands:\n\n"
+        "/latestnews - Latest Anime News\n"
+        "/latestmanga - Latest Manga News\n"
+        "/news - Send today's Anime and Manga news\n"
+        "/anime - Only today's Anime news\n"
+        "/manga - Only today's Manga news\n"
+        "/help - Show this help message"
+    )
+    await update.message.reply_text(help_text)
 
-# Helper: Send news list
+# Helper: Send news list to user
 async def send_news_list(update, news_list, category="News"):
-    for news in news_list[:5]:  # Send only top 5
+    for news in news_list:
         caption = (
             f"📰 <b>{category} News:</b> {news['title']}\n"
             f"🗓 <b>Published:</b> {news['published']}\n\n"
@@ -188,14 +160,18 @@ async def send_news_list(update, news_list, category="News"):
                     text=caption,
                     parse_mode="HTML"
                 )
-            await asyncio.sleep(1)  # Sleep to avoid flood
+            await asyncio.sleep(1.5)
         except Exception as e:
             logging.error(f"Error sending user news: {e}")
+            await asyncio.sleep(30)
 
 # Register bot commands
 bot_app.add_handler(CommandHandler("latestnews", latest_news_command))
 bot_app.add_handler(CommandHandler("latestmanga", latest_manga_command))
 bot_app.add_handler(CommandHandler("news", news_command))
+bot_app.add_handler(CommandHandler("anime", anime_command))
+bot_app.add_handler(CommandHandler("manga", manga_command))
+bot_app.add_handler(CommandHandler("help", help_command))
 
 # Startup event
 @app.on_event("startup")

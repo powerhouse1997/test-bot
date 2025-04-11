@@ -1,3 +1,4 @@
+requests
 python-telegram-bot[webhooks]
 feedparser
 aiohttp
@@ -7,4 +8,3 @@ python-dotenv
 fastapi
 uvicorn
 feedparser
-requests

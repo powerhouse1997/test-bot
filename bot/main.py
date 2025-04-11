@@ -64,5 +64,14 @@ async def main():
     )
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    try:
+        # Try to run directly
+        asyncio.run(main())
+    except RuntimeError as e:
+        if "cannot close a running event loop" in str(e).lower():
+            # Event loop already running, fallback
+            loop = asyncio.get_event_loop()
+            loop.create_task(main())
+            loop.run_forever()
+        else:
+            raise

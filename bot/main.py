@@ -1,19 +1,17 @@
-import os
+from telegram.ext import ApplicationBuilder, CommandHandler
 import feedparser
 import aiohttp
 from bs4 import BeautifulSoup
-from telegram.ext import ApplicationBuilder, CommandHandler
-from telegram import Update
-from dotenv import load_dotenv
-import asyncio
+import os
 
+# Load your .env (optional if you use Railway variables directly)
+from dotenv import load_dotenv
 load_dotenv()
 
-TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-WEBHOOK_URL = os.getenv('DOMAIN')  # example: https://your-app-name.up.railway.app
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+APP_URL = os.getenv("DOMAIN")  # Like "https://your-app.up.railway.app"
 
-# --- News Fetching Functions ---
-
+# News fetching functions
 def fetch_ann_news():
     feed = feedparser.parse('https://www.animenewsnetwork.com/all/rss.xml')
     latest = feed.entries[0]
@@ -37,42 +35,32 @@ async def fetch_crunchyroll_news():
                 return f"🎬 Crunchyroll: {title}\n{link}"
             return "🎬 Crunchyroll: No news found."
 
-# --- Telegram Handlers ---
+# Command handlers
+async def start(update, context):
+    await update.message.reply_text('Hello! Send /news to get the latest anime news.')
 
-async def start(update: Update, context):
-    await update.message.reply_text("Hello! Type /news to get the latest anime news!")
-
-async def get_news(update: Update, context):
+async def get_news(update, context):
     ann = fetch_ann_news()
     natalie = fetch_natalie_news()
     crunchy = await fetch_crunchyroll_news()
+
     news_message = f"{ann}\n\n{natalie}\n\n{crunchy}"
     await update.message.reply_text(news_message)
 
-# --- Main function ---
-
+# Main Bot
 async def main():
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("news", get_news))
 
-    # This starts the webhook server
+    # 🔥 Running webhook
     await app.run_webhook(
         listen="0.0.0.0",
-        port=int(os.environ.get('PORT', 8000)),
-        webhook_url=WEBHOOK_URL
+        port=int(os.environ.get('PORT', 8443)),
+        webhook_url=f"{APP_URL}/{TOKEN}"
     )
 
 if __name__ == "__main__":
-    try:
-        # Try to run directly
-        asyncio.run(main())
-    except RuntimeError as e:
-        if "cannot close a running event loop" in str(e).lower():
-            # Event loop already running, fallback
-            loop = asyncio.get_event_loop()
-            loop.create_task(main())
-            loop.run_forever()
-        else:
-            raise
+    import asyncio
+    asyncio.run(main())

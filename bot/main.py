@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from telegram import Update, Bot
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import aiohttp
+from aiogram import Bot, Dispatcher, types
 
 # Load environment variables
 load_dotenv()
@@ -15,7 +16,7 @@ GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID")
 DOMAIN = os.getenv("DOMAIN")
 
 bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
+dp = Dispatcher(bot=bot)
 scheduler = AsyncIOScheduler()
 
 # Logging

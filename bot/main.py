@@ -1,14 +1,12 @@
 import feedparser
 import aiohttp
 from bs4 import BeautifulSoup
-from telegram import Bot
 from telegram.ext import ApplicationBuilder, CommandHandler
 import asyncio
 import os
 
-# Your bot token from BotFather
-TOKEN = '7853195961:AAHFMQm9fbvVNXvDbq2Kv192_HvOxTK0gHY'
-# CHAT_ID not needed unless you want to force send
+# Bot token
+TOKEN = os.getenv("BOT_TOKEN") or "your-bot-token-here"
 
 # --- Fetch news functions ---
 
@@ -47,19 +45,16 @@ async def get_news(update, context):
     news_message = f"{ann}\n\n{natalie}\n\n{crunchy}"
     await update.message.reply_text(news_message)
 
-# --- Main function ---
+# --- Main ---
 
-async def main():
-    # ✅ Use async with Application
-    async with ApplicationBuilder().token(TOKEN).build() as app:
-        app.add_handler(CommandHandler("start", start))
-        app.add_handler(CommandHandler("news", get_news))
+def main():
+    app = ApplicationBuilder().token(TOKEN).build()
 
-        print("Bot is running...")
-        await app.start()
-        await app.updater.start_polling()
-        await app.updater.idle()
-        await app.stop()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("news", get_news))
+
+    print("Bot is running...")
+    app.run_polling()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

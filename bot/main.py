@@ -52,7 +52,7 @@ def main():
     app.run_webhook(
         listen="0.0.0.0",
         port=8000,
-        webhook_url="https://your-app.up.railway.app/" + TOKEN,
+        webhook_url="https://test-bot-production-02c3.up.railway.app" + TOKEN,
     )
 
 if __name__ == "__main__":

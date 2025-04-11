@@ -47,7 +47,6 @@ async def get_news(update, context):
     await update.message.reply_text(news_message)
 
 # --- Main function ---
-
 async def main():
     app = ApplicationBuilder().token(TOKEN).build()
 
@@ -55,9 +54,8 @@ async def main():
     app.add_handler(CommandHandler("news", get_news))
 
     print("Bot is running...")
-    await app.start()
-    await app.updater.start_polling()
-    await app.updater.idle()
+    await app.run_polling()  # ✅ Proper way
 
 if __name__ == "__main__":
+    import asyncio
     asyncio.run(main())

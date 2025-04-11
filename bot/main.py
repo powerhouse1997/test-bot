@@ -49,12 +49,10 @@ async def fetch_latest_news():
             anime_news = fetch_rss("https://www.animenewsnetwork.com/all/rss.xml")
             manga_news = fetch_rss("https://myanimelist.net/rss/news.xml")
 
-            # Check if new anime news
             if anime_news and (not latest_news or anime_news[0]['link'] != latest_news[0]['link']):
                 latest_news = anime_news
                 await send_news_to_group(latest_news, category="Anime")
 
-            # Check if new manga news
             if manga_news and (not latest_manga_news or manga_news[0]['link'] != latest_manga_news[0]['link']):
                 latest_manga_news = manga_news
                 await send_news_to_group(latest_manga_news, category="Manga")
@@ -62,7 +60,7 @@ async def fetch_latest_news():
         except Exception as e:
             logging.error(f"Error fetching news: {e}")
 
-        await asyncio.sleep(600)  # Wait 10 minutes
+        await asyncio.sleep(600)  # 10 minutes
 
 # Send news automatically to group
 async def send_news_to_group(news_list, category="News"):
@@ -92,21 +90,21 @@ async def send_news_to_group(news_list, category="News"):
     except Exception as e:
         logging.error(f"Error sending news: {e}")
 
-# User command: /latestnews
+# Command: /latestnews
 async def latest_news_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not latest_news:
         await update.message.reply_text("No anime news available yet. Please try again later.")
         return
     await send_news_list(update, latest_news, "Anime")
 
-# User command: /latestmanga
+# Command: /latestmanga
 async def latest_manga_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not latest_manga_news:
         await update.message.reply_text("No manga news available yet. Please try again later.")
         return
     await send_news_list(update, latest_manga_news, "Manga")
 
-# User command: /news to send news manually to group
+# Command: /news (manual send)
 async def news_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not latest_news and not latest_manga_news:
         await update.message.reply_text("No news available yet. Please try again later.")
@@ -118,10 +116,9 @@ async def news_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await send_news_to_group(latest_news, category="Anime")
     await send_news_to_group(latest_manga_news, category="Manga")
-
     await update.message.reply_text("Latest news sent to the group!")
 
-# Send news list to user on command
+# Helper: Send news list
 async def send_news_list(update, news_list, category="News"):
     for news in news_list:
         caption = (
@@ -144,17 +141,18 @@ async def send_news_list(update, news_list, category="News"):
         except Exception as e:
             logging.error(f"Error sending user news: {e}")
 
-# Register commands
+# Register bot commands
 bot_app.add_handler(CommandHandler("latestnews", latest_news_command))
 bot_app.add_handler(CommandHandler("latestmanga", latest_manga_command))
 bot_app.add_handler(CommandHandler("news", news_command))
 
+# FastAPI startup event
 @app.on_event("startup")
 async def on_startup():
     asyncio.create_task(fetch_latest_news())
     asyncio.create_task(bot_app.run_polling())
 
-# FastAPI health check
+# FastAPI root route
 @app.get("/")
 def read_root():
     return {"message": "Bot is running!"}

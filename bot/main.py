@@ -11,6 +11,9 @@ load_dotenv()
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 APP_URL = os.getenv("DOMAIN")  # Like "https://your-app.up.railway.app"
 
+async def start(update, context):
+    await update.message.reply_text("👋 Welcome! Bot is working.")
+    
 # News fetching functions
 def fetch_ann_news():
     feed = feedparser.parse('https://www.animenewsnetwork.com/all/rss.xml')
@@ -34,9 +37,6 @@ async def fetch_crunchyroll_news():
                 link = 'https://www.crunchyroll.com' + article['href']
                 return f"🎬 Crunchyroll: {title}\n{link}"
             return "🎬 Crunchyroll: No news found."
-    
-async def start(update, context):
-    await update.message.reply_text("👋 Welcome! Use /news to get the latest updates.")
 
 
 # Command handlers

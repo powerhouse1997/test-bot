@@ -13,6 +13,9 @@ APP_URL = os.getenv("DOMAIN")  # Like "https://your-app.up.railway.app"
 
 async def start(update, context):
     await update.message.reply_text("👋 Welcome! Bot is working.")
+
+async def get_news(update, context):
+    await update.message.reply_text("📰 Here’s some latest news...")
     
 # News fetching functions
 def fetch_ann_news():

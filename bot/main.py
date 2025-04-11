@@ -4,10 +4,11 @@ from bs4 import BeautifulSoup
 from telegram import Bot
 from telegram.ext import ApplicationBuilder, CommandHandler
 import asyncio
+import os
 
 # Your bot token from BotFather
 TOKEN = '7853195961:AAHFMQm9fbvVNXvDbq2Kv192_HvOxTK0gHY'
-CHAT_ID = 'your-chat-id'  # or send to anyone who messages the bot
+# CHAT_ID not needed unless you want to force send
 
 # --- Fetch news functions ---
 
@@ -34,7 +35,7 @@ async def fetch_crunchyroll_news():
                 return f"🎬 Crunchyroll: {title}\n{link}"
             return "🎬 Crunchyroll: No news found."
 
-# --- Telegram command handler ---
+# --- Telegram command handlers ---
 
 async def start(update, context):
     await update.message.reply_text('Hello! I will send you the latest Anime News. Type /news to get news!')
@@ -47,22 +48,18 @@ async def get_news(update, context):
     await update.message.reply_text(news_message)
 
 # --- Main function ---
+
 async def main():
-    app = ApplicationBuilder().token(TOKEN).build()
+    # ✅ Use async with Application
+    async with ApplicationBuilder().token(TOKEN).build() as app:
+        app.add_handler(CommandHandler("start", start))
+        app.add_handler(CommandHandler("news", get_news))
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("news", get_news))
-
-    print("Bot is running...")
-    await app.run_polling()
-
-import asyncio
+        print("Bot is running...")
+        await app.start()
+        await app.updater.start_polling()
+        await app.updater.idle()
+        await app.stop()
 
 if __name__ == "__main__":
-    try:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(main())
-    except RuntimeError:
-        new_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(new_loop)
-        new_loop.run_until_complete(main())
+    asyncio.run(main())

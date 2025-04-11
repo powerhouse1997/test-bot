@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 from telegram.ext import ApplicationBuilder, CommandHandler
 from telegram import Update
 from dotenv import load_dotenv
+import asyncio
 
 load_dotenv()
 

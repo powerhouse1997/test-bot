@@ -6,7 +6,7 @@ import asyncio
 import os
 
 # Bot token
-TOKEN = os.getenv("BOT_TOKEN") or "your-bot-token-here"
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN") or "your-bot-token-here"
 
 # --- Fetch news functions ---
 

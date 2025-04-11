@@ -1,6 +1,5 @@
 from telegram.ext import ApplicationBuilder, CommandHandler
 from telegram import Update
-import feedparser
 import aiohttp
 from bs4 import BeautifulSoup
 import os
@@ -21,19 +20,7 @@ app = FastAPI()
 # Create Telegram Application
 application = ApplicationBuilder().token(TOKEN).build()
 
-# News functions
-def fetch_ann_news():
-    feed = feedparser.parse('https://www.animenewsnetwork.com/all/rss.xml')
-    news_items = feed.entries[:10]
-    news_list = [f"📢 ANN: {item.title}\n{item.link}" for item in news_items]
-    return "\n\n".join(news_list)
-
-def fetch_natalie_news():
-    feed = feedparser.parse('https://natalie.mu/comic/feed/news')
-    news_items = feed.entries[:10]
-    news_list = [f"🗾 Natalie: {item.title}\n{item.link}" for item in news_items]
-    return "\n\n".join(news_list)
-
+# Fetch Crunchyroll News
 async def fetch_crunchyroll_news():
     url = "https://www.crunchyroll.com/news"
     async with aiohttp.ClientSession() as session:
@@ -45,25 +32,20 @@ async def fetch_crunchyroll_news():
             for article in articles:
                 title = article.text.strip()
                 link = 'https://www.crunchyroll.com' + article['href']
-                news_list.append(f"🎬 Crunchyroll: {title}\n{link}")
-            if news_list:
-                return "\n\n".join(news_list)
-            return "🎬 Crunchyroll: No news found."
+                news_list.append(f"🎬 {title}\n{link}")
+            return news_list
 
 # Telegram Command Handlers
 async def start(update: Update, context):
     await update.message.reply_text("👋 Welcome! Bot is working.")
 
 async def get_news(update: Update, context):
-    loading_message = await update.message.reply_text("📰 Fetching Top 10 news...")
+    await update.message.reply_text("📰 Fetching Top 10 Crunchyroll news...")
 
-    ann_news = fetch_ann_news()
-    natalie_news = fetch_natalie_news()
-    crunchyroll_news = await fetch_crunchyroll_news()
+    news_list = await fetch_crunchyroll_news()
 
-    news_message = f"📰 Latest News Updates\n\n{ann_news}\n\n{natalie_news}\n\n{crunchyroll_news}"
-
-    await loading_message.edit_text(news_message)
+    for news_item in news_list:
+        await update.message.reply_text(news_item)
 
 # Register handlers
 application.add_handler(CommandHandler("start", start))

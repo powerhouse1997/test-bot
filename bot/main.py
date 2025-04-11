@@ -2,8 +2,6 @@ import asyncio
 import feedparser
 import logging
 import os
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 from dotenv import load_dotenv
 from telegram import Update, Bot
@@ -13,6 +11,9 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 load_dotenv()
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID")
+
+# Initialize FastAPI app
+app = FastAPI()
 
 # Initialize Telegram bot
 bot_app = ApplicationBuilder().token(BOT_TOKEN).build()
@@ -48,10 +49,12 @@ async def fetch_latest_news():
             anime_news = fetch_rss("https://www.animenewsnetwork.com/all/rss.xml")
             manga_news = fetch_rss("https://myanimelist.net/rss/news.xml")
 
+            # Check if new anime news
             if anime_news and (not latest_news or anime_news[0]['link'] != latest_news[0]['link']):
                 latest_news = anime_news
                 await send_news_to_group(latest_news, category="Anime")
 
+            # Check if new manga news
             if manga_news and (not latest_manga_news or manga_news[0]['link'] != latest_manga_news[0]['link']):
                 latest_manga_news = manga_news
                 await send_news_to_group(latest_manga_news, category="Manga")
@@ -103,6 +106,21 @@ async def latest_manga_command(update: Update, context: ContextTypes.DEFAULT_TYP
         return
     await send_news_list(update, latest_manga_news, "Manga")
 
+# User command: /news to send news manually to group
+async def news_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not latest_news and not latest_manga_news:
+        await update.message.reply_text("No news available yet. Please try again later.")
+        return
+
+    if update.effective_chat.id != int(GROUP_CHAT_ID):
+        await update.message.reply_text("This command can only be used in the group!")
+        return
+
+    await send_news_to_group(latest_news, category="Anime")
+    await send_news_to_group(latest_manga_news, category="Manga")
+
+    await update.message.reply_text("Latest news sent to the group!")
+
 # Send news list to user on command
 async def send_news_list(update, news_list, category="News"):
     for news in news_list:
@@ -129,21 +147,12 @@ async def send_news_list(update, news_list, category="News"):
 # Register commands
 bot_app.add_handler(CommandHandler("latestnews", latest_news_command))
 bot_app.add_handler(CommandHandler("latestmanga", latest_manga_command))
+bot_app.add_handler(CommandHandler("news", news_command))
 
-# FastAPI lifespan for startup/shutdown
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup
+@app.on_event("startup")
+async def on_startup():
     asyncio.create_task(fetch_latest_news())
-    await bot_app.initialize()
-    await bot_app.start()
-    yield
-    # Shutdown
-    await bot_app.stop()
-    await bot_app.shutdown()
-
-# Initialize FastAPI app
-app = FastAPI(lifespan=lifespan)
+    asyncio.create_task(bot_app.run_polling())
 
 # FastAPI health check
 @app.get("/")

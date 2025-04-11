@@ -34,6 +34,10 @@ async def fetch_crunchyroll_news():
                 link = 'https://www.crunchyroll.com' + article['href']
                 return f"🎬 Crunchyroll: {title}\n{link}"
             return "🎬 Crunchyroll: No news found."
+    
+async def start(update, context):
+    await update.message.reply_text("👋 Welcome! Use /news to get the latest updates.")
+
 
 # Command handlers
 def main():

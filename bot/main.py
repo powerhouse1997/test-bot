@@ -14,12 +14,7 @@ def fetch_ann_news():
     feed = feedparser.parse('https://www.animenewsnetwork.com/all/rss.xml')
     latest = feed.entries[0]
     return f"📢 ANN: {latest.title}\n{latest.link}"
-
-def fetch_natalie_news():
-    feed = feedparser.parse('https://natalie.mu/comic/feed/news')
-    latest = feed.entries[0]
-    return f"🗾 Natalie: {latest.title}\n{latest.link}"
-    
+   
 def fetch_animeuk_news():
     feed = feedparser.parse('https://animeuknews.net/feed/')
     latest = feed.entries[0]

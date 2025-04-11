@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-TOKEN = os.getenv("BOT_TOKEN")  # Set this in Railway Environment Variables
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")  # Set this in Railway Environment Variables
 WEBHOOK_URL = os.getenv("DOMAIN")  # Your Railway public URL like https://your-bot.up.railway.app
 
 # --- Fetch news functions ---

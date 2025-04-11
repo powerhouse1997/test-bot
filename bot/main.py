@@ -2,20 +2,16 @@ import os
 import feedparser
 import aiohttp
 from bs4 import BeautifulSoup
+from telegram.ext import ApplicationBuilder, CommandHandler
 from telegram import Update
-from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    ContextTypes,
-)
 from dotenv import load_dotenv
 
 load_dotenv()
 
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")  # Set this in Railway Environment Variables
-WEBHOOK_URL = os.getenv("DOMAIN")  # Your Railway public URL like https://your-bot.up.railway.app
+TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+WEBHOOK_URL = os.getenv('DOMAIN')  # example: https://your-app-name.up.railway.app
 
-# --- Fetch news functions ---
+# --- News Fetching Functions ---
 
 def fetch_ann_news():
     feed = feedparser.parse('https://www.animenewsnetwork.com/all/rss.xml')
@@ -40,34 +36,16 @@ async def fetch_crunchyroll_news():
                 return f"🎬 Crunchyroll: {title}\n{link}"
             return "🎬 Crunchyroll: No news found."
 
-def fetch_myanimelist_news():
-    feed = feedparser.parse('https://myanimelist.net/rss/news.xml')
-    latest = feed.entries[0]
-    return f"🌟 MAL: {latest.title}\n{latest.link}"
+# --- Telegram Handlers ---
 
-def fetch_animeuk_news():
-    feed = feedparser.parse('https://animeuknews.net/category/news/feed/')
-    latest = feed.entries[0]
-    return f"🇬🇧 AnimeUKNews: {latest.title}\n{latest.link}"
+async def start(update: Update, context):
+    await update.message.reply_text("Hello! Type /news to get the latest anime news!")
 
-def fetch_otakuusa_news():
-    feed = feedparser.parse('https://otakuusamagazine.com/feed/')
-    latest = feed.entries[0]
-    return f"🇺🇸 Otaku USA: {latest.title}\n{latest.link}"
-
-# --- Telegram command handlers ---
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text('Hello! 📰 I will send you the latest Anime News. Type /news to get updates!')
-
-async def get_news(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def get_news(update: Update, context):
     ann = fetch_ann_news()
     natalie = fetch_natalie_news()
     crunchy = await fetch_crunchyroll_news()
-    mal = fetch_myanimelist_news()
-    animeuk = fetch_animeuk_news()
-    otakuusa = fetch_otakuusa_news()
-    news_message = f"{ann}\n\n{natalie}\n\n{crunchy}\n\n{mal}\n\n{animeuk}\n\n{otakuusa}"
+    news_message = f"{ann}\n\n{natalie}\n\n{crunchy}"
     await update.message.reply_text(news_message)
 
 # --- Main function ---
@@ -78,19 +56,12 @@ async def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("news", get_news))
 
-    print("Bot is running with Webhook...")
-
-    # Start the bot
-    await app.start()
-    await app.bot.set_webhook(url=DOMAIN)
-
-    await app.updater.start_webhook(
+    # This starts the webhook server
+    await app.run_webhook(
         listen="0.0.0.0",
-        port=int(os.environ.get("PORT", 8443)),
-        webhook_url=WEBHOOK_URL,
+        port=int(os.environ.get('PORT', 8000)),
+        webhook_url=DOMAIN
     )
-
-    await app.updater.idle()
 
 if __name__ == "__main__":
     import asyncio

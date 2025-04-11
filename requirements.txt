@@ -3,3 +3,4 @@ feedparser
 aiohttp
 beautifulsoup4
 apscheduler
+python-dotenv

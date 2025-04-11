@@ -6,7 +6,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler
 import asyncio
 
 # Your bot token from BotFather
-TOKEN = 'your-telegram-bot-token'
+TOKEN = '7853195961:AAHFMQm9fbvVNXvDbq2Kv192_HvOxTK0gHY'
 CHAT_ID = 'your-chat-id'  # or send to anyone who messages the bot
 
 # --- Fetch news functions ---

@@ -6,3 +6,5 @@ apscheduler
 python-dotenv
 fastapi
 uvicorn
+feedparser
+requests

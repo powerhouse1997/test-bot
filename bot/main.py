@@ -56,14 +56,19 @@ async def get_news(update, context):
 
 # --- Main ---
 
-def main():
-    app = ApplicationBuilder().token(TOKEN).build()
+app = ApplicationBuilder().token(TOKEN).build()
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("news", get_news))
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CommandHandler("news", get_news))
 
-    print("Bot is running...")
-    app.run_polling()
+print("Bot is running with Webhook...")
 
-if __name__ == "__main__":
-    main()
+await app.start()
+await app.bot.set_webhook("https://your-railway-app.up.railway.app/")  # <--- your public URL
+await app.updater.start_webhook(
+    listen="0.0.0.0",
+    port=int(os.environ.get('PORT', 8443)),
+    url_path="",
+    webhook_url="https://your-railway-app.up.railway.app/",
+)
+await app.updater.idle()

@@ -19,6 +19,12 @@ def fetch_natalie_news():
     feed = feedparser.parse('https://natalie.mu/comic/feed/news')
     latest = feed.entries[0]
     return f"🗾 Natalie: {latest.title}\n{latest.link}"
+    
+def fetch_animeuk_news():
+    feed = feedparser.parse('https://animeuknews.net/feed/')
+    latest = feed.entries[0]
+    return f"🇬🇧 AnimeUK: {latest.title}\n{latest.link}"
+
 
 async def fetch_crunchyroll_news():
     url = "https://www.crunchyroll.com/news"
@@ -32,6 +38,11 @@ async def fetch_crunchyroll_news():
                 link = 'https://www.crunchyroll.com' + article['href']
                 return f"🎬 Crunchyroll: {title}\n{link}"
             return "🎬 Crunchyroll: No news found."
+def fetch_mal_news():
+    feed = feedparser.parse('https://myanimelist.net/rss/news.xml')
+    latest = feed.entries[0]
+    return f"🐉 MAL: {latest.title}\n{latest.link}"
+
 
 # --- Telegram command handlers ---
 
@@ -40,10 +51,13 @@ async def start(update, context):
 
 async def get_news(update, context):
     ann = fetch_ann_news()
-    natalie = fetch_natalie_news()
     crunchy = await fetch_crunchyroll_news()
-    news_message = f"{ann}\n\n{natalie}\n\n{crunchy}"
+    mal = fetch_mal_news()
+    animeuk = fetch_animeuk_news()
+
+    news_message = f"{ann}\n\n{natalie}\n\n{crunchy}\n\n{mal}\n\n{animeuk}\n\n{otakuusa}"
     await update.message.reply_text(news_message)
+
 
 # --- Main ---
 

@@ -1,68 +1,63 @@
-import os
-import logging
-from fastapi import FastAPI, Request
-from telegram import Update, Bot
-from telegram.ext import Application, ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters
-from bot import handlers
-from bot.reminders import reminder_loop
-from bot.utils import parse_reminder_time
+import feedparser
+import aiohttp
+from bs4 import BeautifulSoup
+from telegram import Bot
+from telegram.ext import ApplicationBuilder, CommandHandler
+import asyncio
 
-# Load environment variables
-BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-DOMAIN = os.getenv("DOMAIN")
+# Your bot token from BotFather
+TOKEN = 'your-telegram-bot-token'
+CHAT_ID = 'your-chat-id'  # or send to anyone who messages the bot
 
-if not BOT_TOKEN:
-    raise ValueError("❌ TELEGRAM_BOT_TOKEN is not set in environment variables!")
+# --- Fetch news functions ---
 
-# Initialize FastAPI app
-app = FastAPI()
+def fetch_ann_news():
+    feed = feedparser.parse('https://www.animenewsnetwork.com/all/rss.xml')
+    latest = feed.entries[0]
+    return f"📢 ANN: {latest.title}\n{latest.link}"
 
-# Initialize Telegram Bot
-bot = Bot(token=BOT_TOKEN)
-application = ApplicationBuilder().token(BOT_TOKEN).build()
+def fetch_natalie_news():
+    feed = feedparser.parse('https://natalie.mu/comic/feed/news')
+    latest = feed.entries[0]
+    return f"🗾 Natalie: {latest.title}\n{latest.link}"
 
-# Setup logging
-logging.basicConfig(level=logging.INFO)
+async def fetch_crunchyroll_news():
+    url = "https://www.crunchyroll.com/news"
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            html = await resp.text()
+            soup = BeautifulSoup(html, 'html.parser')
+            article = soup.find('a', class_='text-link')
+            if article:
+                title = article.text.strip()
+                link = 'https://www.crunchyroll.com' + article['href']
+                return f"🎬 Crunchyroll: {title}\n{link}"
+            return "🎬 Crunchyroll: No news found."
 
-# ✅ Register your handlers
-application.add_handler(CommandHandler("manga", handlers.search_manga))
-application.add_handler(CommandHandler("fav", handlers.save_favorite))
-application.add_handler(CommandHandler("track", handlers.track_progress))
-application.add_handler(CommandHandler("recommend", handlers.send_recommendations))
-application.add_handler(CommandHandler("news", handlers.send_news))
-application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handlers.handle_update))
-application.add_handler(MessageHandler(filters.COMMAND, handlers.handle_update))  # fallback
-application.add_handler(CallbackQueryHandler(handlers.handle_update))
+# --- Telegram command handler ---
 
-# ✅ Webhook endpoint
-@app.post("/")
-async def telegram_webhook(request: Request):
-    try:
-        data = await request.json()
-    except Exception:
-        return {"ok": True}  # Ignore bad requests
+async def start(update, context):
+    await update.message.reply_text('Hello! I will send you the latest Anime News. Type /news to get news!')
 
-    update = Update.de_json(data, bot)
-    await application.process_update(update)
-    return {"ok": True}
+async def get_news(update, context):
+    ann = fetch_ann_news()
+    natalie = fetch_natalie_news()
+    crunchy = await fetch_crunchyroll_news()
+    news_message = f"{ann}\n\n{natalie}\n\n{crunchy}"
+    await update.message.reply_text(news_message)
 
-# ✅ Startup event
-@app.on_event("startup")
-async def on_startup():
-    logging.info("Starting bot and setting webhook...")
-    webhook_url = f"{DOMAIN}/"
-    await bot.set_webhook(webhook_url)
-    await application.initialize()
-    await application.start()
-    application.create_task(reminder_loop(bot))
-    logging.info("Reminder loop started!")
+# --- Main function ---
 
-# ✅ Shutdown event
-@app.on_event("shutdown")
-async def on_shutdown():
-    logging.info("Bot is shutting down...")
+async def main():
+    app = ApplicationBuilder().token(TOKEN).build()
 
-# Entry point for local dev
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("news", get_news))
+
+    print("Bot is running...")
+    await app.start()
+    await app.updater.start_polling()
+    await app.updater.idle()
+
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("bot.main:app", host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
+    asyncio.run(main())

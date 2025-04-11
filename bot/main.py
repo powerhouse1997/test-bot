@@ -2,30 +2,29 @@ from telegram.ext import ApplicationBuilder, CommandHandler
 from telegram import Update
 import feedparser
 import os
-from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 import uvicorn
 
-load_dotenv()
+# No need for load_dotenv()
 
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-APP_URL = os.getenv("DOMAIN")  # Like "https://your-app.up.railway.app"
+TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
+APP_URL = os.environ["DOMAIN"]  # Example: https://your-app.up.railway.app
 
+# Initialize FastAPI and Telegram Application
 app = FastAPI()
 application = ApplicationBuilder().token(TOKEN).build()
 
-# Commands
+# Telegram Bot Commands
 async def start(update: Update, context):
-    await update.message.reply_text("👋 Welcome! Send /news to get the latest anime/gaming news!")
+    await update.message.reply_text("👋 Welcome! Send /news to get the latest news!")
 
 async def news(update: Update, context):
     await update.message.reply_text("📰 Fetching top news...")
 
-    # News sources (updated Crunchyroll)
     sources = [
         ("Crunchyroll", "https://cr-news-api-service.prd.crunchyrollsvc.com/v1/en-US/rss"),
         ("MyAnimeList", "https://myanimelist.net/rss/news.xml"),
-        ("ANN", "https://www.animenewsnetwork.com/all/rss.xml"),
+        ("Anime News Network", "https://www.animenewsnetwork.com/all/rss.xml"),
         ("Kotaku", "https://kotaku.com/rss"),
     ]
 
@@ -35,18 +34,16 @@ async def news(update: Update, context):
             await update.message.reply_text(f"⚠️ No news found from {name}.")
             continue
 
-        top_entries = feed.entries[:10]  # Get top 10
-
-        for entry in top_entries:
+        for entry in feed.entries[:10]:  # Top 10
             title = entry.title
             link = entry.link
-            await update.message.reply_text(f"🗞️ {name}:\n<b>{title}</b>\n{link}", parse_mode="HTML")
+            await update.message.reply_text(f"🗞️ <b>{name}</b>\n<b>{title}</b>\n{link}", parse_mode="HTML")
 
-# Setup handlers
+# Add handlers
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CommandHandler("news", news))
 
-# FastAPI webhook route
+# FastAPI Webhook route
 @app.post(f"/bot{TOKEN}")
 async def telegram_webhook(request: Request):
     data = await request.json()
@@ -54,18 +51,23 @@ async def telegram_webhook(request: Request):
     await application.update_queue.put(update)
     return {"status": "ok"}
 
-def main():
-    import asyncio
+async def set_webhook():
+    """Set the webhook on startup."""
+    await application.bot.set_webhook(url=f"{APP_URL}/bot{TOKEN}")
+    print(f"✅ Webhook set to {APP_URL}/bot{TOKEN}")
 
-    async def run():
-        await application.initialize()
-        await application.bot.set_webhook(url=f"{APP_URL}/bot{TOKEN}")
-        await application.start()
-        print(f"Webhook set to {APP_URL}/bot{TOKEN}")
+@app.on_event("startup")
+async def on_startup():
+    await application.initialize()
+    await set_webhook()
+    await application.start()
 
-    asyncio.run(run())
+@app.on_event("shutdown")
+async def on_shutdown():
+    await application.stop()
+    await application.shutdown()
 
+# Main
 if __name__ == "__main__":
-    main()
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("bot.main:app", host="0.0.0.0", port=port)

@@ -6,12 +6,14 @@ from fastapi import FastAPI, Request
 from dotenv import load_dotenv
 from telegram import Update, Bot
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from dateutil import parser
+import pytz
 
 # Load environment variables
 load_dotenv()
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID")
-DOMAIN = os.getenv("DOMAIN")  # <-- ADD THIS
+DOMAIN = os.getenv("DOMAIN")  # Webhook domain
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -23,11 +25,14 @@ bot = Bot(BOT_TOKEN)
 latest_news = []
 latest_manga_news = []
 
+# Set your local timezone
+local_timezone = pytz.timezone("Asia/Kolkata")
+
 # Fetch RSS feed
 def fetch_rss(url):
     feed = feedparser.parse(url)
     entries = []
-    for entry in feed.entries[:5]:  # Latest 5 news
+    for entry in feed.entries[:10]:  # Fetch latest 10 news
         thumbnail = ""
         if "media_thumbnail" in entry:
             thumbnail = entry.media_thumbnail[0]['url']
@@ -50,35 +55,49 @@ async def fetch_latest_news():
             anime_news = fetch_rss("https://www.animenewsnetwork.com/all/rss.xml")
             manga_news = fetch_rss("https://myanimelist.net/rss/news.xml")
 
-            if anime_news and (not latest_news or anime_news[0]['link'] != latest_news[0]['link']):
-                latest_news = anime_news
-                await send_news_to_group(latest_news, category="Anime")
+            # Check and send new anime news
+            if anime_news:
+                if not latest_news or anime_news[0]['link'] != latest_news[0]['link']:
+                    new_items = [news for news in anime_news if news['link'] not in [n['link'] for n in latest_news]]
+                    latest_news = anime_news
+                    for news in new_items:
+                        await send_single_news_to_group(news, category="Anime")
 
-            if manga_news and (not latest_manga_news or manga_news[0]['link'] != latest_manga_news[0]['link']):
-                latest_manga_news = manga_news
-                await send_news_to_group(latest_manga_news, category="Manga")
+            # Check and send new manga news
+            if manga_news:
+                if not latest_manga_news or manga_news[0]['link'] != latest_manga_news[0]['link']:
+                    new_items = [news for news in manga_news if news['link'] not in [n['link'] for n in latest_manga_news]]
+                    latest_manga_news = manga_news
+                    for news in new_items:
+                        await send_single_news_to_group(news, category="Manga")
 
         except Exception as e:
             logging.error(f"Error fetching news: {e}")
 
-        await asyncio.sleep(600)  # 10 minutes
+        await asyncio.sleep(600)  # Wait 10 minutes
 
-# Send news automatically to group
-async def send_news_to_group(news_list, category="News"):
-    if not news_list:
-        return
-    first_news = news_list[0]
+# Send one news automatically
+async def send_single_news_to_group(news, category="News"):
+    published_time = ""
+    try:
+        published_dt = parser.parse(news['published'])
+        published_dt = published_dt.astimezone(local_timezone)
+        published_time = published_dt.strftime("%d %b %Y, %I:%M %p")
+    except Exception as e:
+        logging.error(f"Error parsing published time: {e}")
+
     caption = (
-        f"📰 <b>{category} News:</b> {first_news['title']}\n\n"
-        f"📝 {first_news['summary'][:300]}...\n\n"
-        f"🔗 <a href='{first_news['link']}'>Read Full</a>"
+        f"📰 <b>{category} News:</b> {news['title']}\n\n"
+        f"🕒 <b>Published:</b> {published_time}\n\n"
+        f"📝 {news['summary'][:300]}...\n\n"
+        f"🔗 <a href='{news['link']}'>Read Full</a>"
     )
 
     try:
-        if first_news['thumbnail']:
+        if news['thumbnail']:
             await bot.send_photo(
                 chat_id=GROUP_CHAT_ID,
-                photo=first_news['thumbnail'],
+                photo=news['thumbnail'],
                 caption=caption,
                 parse_mode="HTML"
             )
@@ -115,15 +134,25 @@ async def news_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("This command can only be used in the group!")
         return
 
-    await send_news_to_group(latest_news, category="Anime")
-    await send_news_to_group(latest_manga_news, category="Manga")
-    await update.message.reply_text("Latest news sent to the group!")
+    await update.message.reply_text("📰 <b>Today's Latest News</b>:", parse_mode="HTML")
+    await send_news_list(update, latest_news, "Anime")
+    await send_news_list(update, latest_manga_news, "Manga")
 
-# Helper: Send news list
+# Helper: Send multiple news
 async def send_news_list(update, news_list, category="News"):
-    for news in news_list:
+    max_news = 10  # Show maximum 10 news at once
+    for news in news_list[:max_news]:
+        published_time = ""
+        try:
+            published_dt = parser.parse(news['published'])
+            published_dt = published_dt.astimezone(local_timezone)
+            published_time = published_dt.strftime("%d %b %Y, %I:%M %p")
+        except Exception as e:
+            logging.error(f"Error parsing published time: {e}")
+
         caption = (
             f"📰 <b>{category} News:</b> {news['title']}\n\n"
+            f"🕒 <b>Published:</b> {published_time}\n\n"
             f"📝 {news['summary'][:300]}...\n\n"
             f"🔗 <a href='{news['link']}'>Read Full</a>"
         )
@@ -150,7 +179,7 @@ bot_app.add_handler(CommandHandler("news", news_command))
 # Startup event: Set webhook
 @app.on_event("startup")
 async def on_startup():
-    webhook_url = f"{DOMAIN}/webhook"  # <-- use DOMAIN from .env
+    webhook_url = f"{DOMAIN}/webhook"
     await bot_app.bot.set_webhook(webhook_url)
     asyncio.create_task(fetch_latest_news())
 

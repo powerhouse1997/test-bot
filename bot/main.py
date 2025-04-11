@@ -9,13 +9,13 @@ import os
 import uvicorn
 import asyncio
 
+app = FastAPI()
+application = ApplicationBuilder().token(TOKEN).build()
+
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 APP_URL = os.getenv("DOMAIN")  # Railway ENV
 CHAT_ID = os.getenv("CHAT_ID")  # Save your chat ID in Railway ENV
 POST_INTERVAL = 2 * 60 * 60  # 2 hours in seconds
-
-app = FastAPI()
-application = ApplicationBuilder().token(TOKEN).build()
 
 last_posted_titles = set()
 

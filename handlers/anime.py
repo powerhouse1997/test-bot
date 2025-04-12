@@ -1,5 +1,8 @@
 from html import escape
 
+
+router = Router()
+
 @router.message(Command("a"))
 async def cmd_anime(message: types.Message):
     args = message.text.split(maxsplit=1)

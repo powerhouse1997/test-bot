@@ -1,21 +1,30 @@
-import aiohttp
-import logging
-from config import JIKAN_API_URL
+from jikanpy import Jikan
 
-async def fetch_json(url):
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                if response.status == 200:
-                    return await response.json()
-                else:
-                    logging.error(f"Failed to fetch {url}: Status {response.status}")
-    except Exception as e:
-        logging.error(f"Exception while fetching {url}: {e}")
-    return None
+# Initialize Jikan object
+jikan = Jikan()
 
 async def search_jikan(endpoint, query, limit=1):
-    from urllib.parse import quote
-    url = f"{JIKAN_API_URL}/{endpoint}?q={quote(query)}&limit={limit}"
-    data = await fetch_json(url)
-    return data.get("data", []) if data else []
+    try:
+        if endpoint == 'anime':
+            return jikan.search('anime', query, page=1)['results'][:limit]
+        elif endpoint == 'manga':
+            return jikan.search('manga', query, page=1)['results'][:limit]
+        elif endpoint == 'characters':
+            return jikan.search('characters', query, page=1)['results'][:limit]
+        elif endpoint == 'season':
+            return jikan.season()  # For current season
+        elif endpoint == 'top':
+            return jikan.top('anime')  # Default top anime
+        return []
+    except Exception as e:
+        print(f"Error fetching data from Jikan: {e}")
+        return []
+
+# Fetching anime news
+async def fetch_anime_news():
+    try:
+        news = jikan.news()  # Using jikanpy to fetch news
+        return news[:5]  # Get top 5 news items
+    except Exception as e:
+        print(f"Error fetching anime news: {e}")
+        return []

@@ -19,7 +19,7 @@ TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 # Initialize bot and dispatcher
 bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-dp = Dispatcher()
+dp = Dispatcher(bot)
 
 # Register all routers
 dp.include_router(anime_router)
@@ -32,7 +32,7 @@ dp.include_router(news_router)
 # Entry point
 async def main():
     logging.basicConfig(level=logging.INFO)
-    await dp.start_polling(bot)
+    await dp.start_polling()
 
 if __name__ == "__main__":
     asyncio.run(main())

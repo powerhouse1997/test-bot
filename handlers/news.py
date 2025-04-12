@@ -7,15 +7,15 @@ from html import escape
 router = Router()
 
 
-async def fetch_anime_news():
+aasync def fetch_anime_news():
     url = "https://www.animenewsnetwork.com/all/rss.xml"
     feed = feedparser.parse(url)
 
     news_items = []
     for entry in feed.entries[:5]:
-        image_url = None
-        if 'media_content' in entry and len(entry.media_content) > 0:
-            image_url = entry.media_content[0].get('url')
+        # Try to find image in description HTML
+        img_match = re.search(r'<img[^>]+src="([^"]+)"', entry.description)
+        image_url = img_match.group(1) if img_match else None
 
         news_items.append({
             "title": entry.title,
@@ -29,6 +29,7 @@ async def fetch_anime_news():
 @router.message(Command("news"))
 async def cmd_news(message: types.Message):
     news_items = await fetch_anime_news()
+
     if not news_items:
         await message.reply("No news available right now.")
         return
@@ -39,20 +40,19 @@ async def cmd_news(message: types.Message):
         date = escape(news.get('published_at', 'No date'))
         thumbnail = news.get('thumbnail')
 
-        caption = f"📰 <b>{title}</b>\n\n🗓️ <i>{date}</i>\n🔗 <a href='{url}'>Read More</a>\n\n#AnimeNews"
+        text = f"📰 <b>{title}</b>\n🗓️ Published: {date}\n🔗 <a href='{url}'>Read More</a>\n\n#AnimeNews #MangaUpdates"
 
         if thumbnail:
             await message.bot.send_photo(
                 chat_id=message.chat.id,
                 photo=thumbnail,
-                caption=caption,
+                caption=text,
                 parse_mode="HTML"
             )
         else:
             await message.bot.send_message(
                 chat_id=message.chat.id,
-                text=caption,
+                text=text,
                 parse_mode="HTML",
                 disable_web_page_preview=True
             )
-

@@ -1,6 +1,8 @@
+# handlers/anime.py
+
 from aiogram import Router, types
 from aiogram.filters import Command
-from jikan_api import search_jikan
+from jikan_api import search_jikan  # Only import the necessary functions
 from html import escape
 
 router = Router()
@@ -11,29 +13,20 @@ async def cmd_anime(message: types.Message):
     if len(args) < 2:
         await message.reply("Usage: /a <anime title>")
         return
-
     results = await search_jikan("anime", args[1])
     if not results:
         await message.reply("No anime found.")
         return
-
     anime = results[0]
-    title = escape(anime["title"])
-    synopsis = escape(anime.get("synopsis", "")[:500])
-    url = anime["url"]
-    image = anime["images"]["jpg"]["large_image_url"]
-
     caption = (
-        f"🎬 <b>{title}</b>\n"
+        f"🎬 <b>{anime['title']}</b>\n"
         f"⭐ Score: {anime.get('score', 'N/A')}\n"
         f"📺 Episodes: {anime.get('episodes', 'Unknown')}\n"
-        f"🔗 <a href='{url}'>More Info</a>\n\n"
-        f"{synopsis}..."
+        f"🔗 <a href='{anime['url']}'>More Info</a>\n\n"
+        f"{anime.get('synopsis', '')[:500]}..."
     )
-
     await message.bot.send_photo(
         chat_id=message.chat.id,
-        photo=image,
-        caption=caption,
-        parse_mode="HTML"
+        photo=anime['images']['jpg']['large_image_url'],
+        caption=caption
     )

@@ -17,7 +17,7 @@ load_dotenv()
 # Initialize bot and dispatcher
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 bot = Bot(token=TOKEN)
-dp = Dispatcher()
+dp = Dispatcher(bot=bot)
 
 # Register command handlers
 register_anime(dp)

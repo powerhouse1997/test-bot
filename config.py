@@ -2,5 +2,9 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-JIKAN_API_URL = os.getenv("JIKAN_API_URL", "https://api.jikan.moe/v4")
+
+# Telegram Bot Token
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+
+# Chat ID (for auto-news)
+CHAT_ID = os.getenv("CHAT_ID")

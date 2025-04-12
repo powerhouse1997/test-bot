@@ -15,15 +15,10 @@ def register_anime(dp):
             return
         anime = results[0]
         caption = (
-            f"🎬 <b>{anime['title']}</b>
-"
-            f"⭐ Score: {anime.get('score', 'N/A')}
-"
-            f"📅 Aired: {anime.get('aired', {}).get('string', 'Unknown')}
-"
-            f"🔗 <a href='{anime['url']}'>More Info</a>
-
-"
+            f"🎬 <b>{anime['title']}</b>\n"
+            f"⭐ Score: {anime.get('score', 'N/A')}\n"
+            f"📅 Aired: {anime.get('aired', 'Unknown')}\n"
+            f"🔗 <a href='{anime['url']}'>More Info</a>\n\n"
             f"{anime.get('synopsis', '')[:500]}..."
         )
-        await message.bot.send_photo(message.chat.id, anime['images']['jpg']['large_image_url'], caption=caption, parse_mode="HTML")
+        await message.bot.send_photo(message.chat.id, anime['image_url'], caption=caption, parse_mode="HTML")

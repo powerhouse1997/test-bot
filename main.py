@@ -1,46 +1,38 @@
 import logging
 import os
 import asyncio
-from aiogram import Bot
-from aiogram import Dispatcher
+from aiogram import Bot, Dispatcher
+from aiogram.enums import ParseMode
 from dotenv import load_dotenv
-from handlers.anime import register_anime
-from handlers.manga import register_manga
-from handlers.character import register_character
-from handlers.season import register_season
-from handlers.top import register_top
-from handlers.news import register_news
+
+# Import routers from handlers
+from handlers.anime import router as anime_router
+from handlers.manga import router as manga_router
+from handlers.character import router as character_router
+from handlers.season import router as season_router
+from handlers.top import router as top_router
+from handlers.news import router as news_router
 
 # Load environment variables
 load_dotenv()
-
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-
-# Initialize bot
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-if not TOKEN:
-    logging.error("TELEGRAM_BOT_TOKEN is not set in environment variables!")
-    exit(1)
 
-bot = Bot(token=TOKEN)
-
-# Create Dispatcher instance, note how it is initialized now
-dp = Dispatcher()
-
-# Register the bot with the dispatcher
-dp.include_router(bot)
-
-# Register command handlers
-register_anime(dp)
-register_manga(dp)
-register_character(dp)
-register_season(dp)
-register_top(dp)
-register_news(dp)
-
-# Main entry point for the bot
 async def main():
+    logging.basicConfig(level=logging.INFO)
+
+    # Initialize bot and dispatcher
+    bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
+    dp = Dispatcher()
+
+    # Include routers
+    dp.include_router(anime_router)
+    dp.include_router(manga_router)
+    dp.include_router(character_router)
+    dp.include_router(season_router)
+    dp.include_router(top_router)
+    dp.include_router(news_router)
+
+    # Start polling
     await dp.start_polling(bot)
 
 if __name__ == "__main__":

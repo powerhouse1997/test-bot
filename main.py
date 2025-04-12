@@ -19,7 +19,7 @@ TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 # Initialize bot and dispatcher
 bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-dp = Dispatcher(bot)
+dp = Dispatcher()
 
 # Register all routers
 dp.include_router(anime_router)

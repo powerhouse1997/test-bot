@@ -1,5 +1,5 @@
 requests
-python-telegram-bot[webhooks]
+python-telegram-bot
 feedparser
 aiohttp
 beautifulsoup4

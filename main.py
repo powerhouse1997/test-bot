@@ -1,7 +1,8 @@
 import logging
 import os
 import asyncio
-from aiogram import Bot, Dispatcher
+from aiogram import Bot
+from aiogram import Dispatcher
 from dotenv import load_dotenv
 from handlers.anime import register_anime
 from handlers.manga import register_manga
@@ -16,14 +17,19 @@ load_dotenv()
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
-# Initialize bot and dispatcher
+# Initialize bot
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 if not TOKEN:
     logging.error("TELEGRAM_BOT_TOKEN is not set in environment variables!")
     exit(1)
 
 bot = Bot(token=TOKEN)
-dp = Dispatcher(bot)
+
+# Create Dispatcher instance, note how it is initialized now
+dp = Dispatcher()
+
+# Register the bot with the dispatcher
+dp.include_router(bot)
 
 # Register command handlers
 register_anime(dp)
@@ -35,7 +41,7 @@ register_news(dp)
 
 # Main entry point for the bot
 async def main():
-    await dp.start_polling()
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())

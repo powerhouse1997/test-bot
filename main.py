@@ -23,7 +23,7 @@ if not TOKEN:
     exit(1)
 
 bot = Bot(token=TOKEN)
-dp = Dispatcher(bot)
+dp = Dispatcher()
 
 # Register command handlers
 register_anime(dp)

@@ -1,0 +1,5 @@
+aiogram==3.0.0b7
+jikanpy==2.4.1
+apscheduler==3.9.1
+python-dotenv==0.21.0
+python-telegram-bot==20.0

@@ -1,28 +1,26 @@
 from aiogram import types
 from aiogram.filters import Command
-from jikan_api import fetch_json
-from config import JIKAN_API_URL
-import asyncio
+from jikan_api import fetch_season_now
 
 def register_season(dp):
     @dp.message(Command("s"))
     async def cmd_season(message: types.Message):
-        data = await fetch_json(f"{JIKAN_API_URL}/seasons/now")
-        if not data or not data.get("data"):
-            await message.reply("Couldn't fetch seasonal anime.")
+        results = await fetch_season_now()
+        if not results:
+            await message.reply("No seasonal anime found.")
             return
-        for anime in data["data"][:5]:
-            try:
-                caption = (
-                    f"📺 <b>{anime['title']}</b>
-"
-                    f"🎬 Episodes: {anime.get('episodes', 'Unknown')}
-"
-                    f"⭐ Score: {anime.get('score', 'N/A')}
-"
-                    f"🔗 <a href='{anime['url']}'>Details</a>"
-                )
-                await message.bot.send_photo(message.chat.id, anime['images']['jpg']['large_image_url'], caption=caption, parse_mode="HTML")
-                await asyncio.sleep(2)
-            except Exception as e:
-                print(f"Error: {e}")
+
+        for anime in results[:5]:
+            caption = (
+                f"📺 <b>{anime['title']}</b>\n"
+                f"⭐ Score: {anime.get('score', 'N/A')}\n"
+                f"🎬 Episodes: {anime.get('episodes', 'Unknown')}\n"
+                f"🔗 <a href='{anime['url']}'>More Info</a>\n\n"
+                f"{anime.get('synopsis', '')[:400]}..."
+            )
+            await message.bot.send_photo(
+                message.chat.id,
+                anime['images']['jpg']['large_image_url'],
+                caption=caption,
+                parse_mode="HTML"
+            )

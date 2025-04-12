@@ -44,7 +44,7 @@ async def fetch_anime_news():
             news_items.append({
                 'title': entry.title,
                 'url': entry.link,
-                'published': entry.published,
+                'published_at': entry.published,
             })
         return news_items
     except Exception as e:

@@ -31,15 +31,15 @@ bot = Bot(
 dp = Dispatcher()
 
     # Include routers
-    dp.include_router(anime_router)
-    dp.include_router(manga_router)
-    dp.include_router(character_router)
-    dp.include_router(season_router)
-    dp.include_router(top_router)
-    dp.include_router(news_router)
+dp.include_router(anime_router)
+dp.include_router(manga_router)
+dp.include_router(character_router)
+dp.include_router(season_router)
+dp.include_router(top_router)
+dp.include_router(news_router)
 
     # Start polling
-    await dp.start_polling(bot)
+await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())

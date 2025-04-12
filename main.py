@@ -13,7 +13,7 @@ from handlers.character import router as character_router
 from handlers.season import router as season_router
 from handlers.top import router as top_router
 from handlers.news import router as news_router
-from news_fetcher import fetch_anime_news  # Assuming this fetches the news
+from news import fetch_anime_news  # Assuming this fetches the news
 
 # Load environment variables
 load_dotenv()

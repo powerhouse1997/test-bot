@@ -16,6 +16,8 @@ async def fetch_anime_news():
         # Try to find image in description HTML
         img_match = re.search(r'<img[^>]+src="([^"]+)"', entry.description)
         image_url = img_match.group(1) if img_match else None
+        
+        print("🖼️ Image URL:", image_url)  # Debug log
 
         news_items.append({
             "title": entry.title,

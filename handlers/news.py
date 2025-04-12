@@ -7,7 +7,7 @@ from html import escape
 router = Router()
 
 
-aasync def fetch_anime_news():
+async def fetch_anime_news():
     url = "https://www.animenewsnetwork.com/all/rss.xml"
     feed = feedparser.parse(url)
 

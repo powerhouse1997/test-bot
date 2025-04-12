@@ -1,4 +1,6 @@
 import aiohttp
+from jikan_api import fetch_season_now
+
 
 BASE_URL = "https://api.jikan.moe/v4"
 
@@ -32,3 +34,17 @@ async def get_current_season():
                 return []
             data = await resp.json()
             return data.get("data", [])
+
+async def fetch_season_now():
+    url = "https://api.jikan.moe/v4/seasons/now"
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data["data"]
+                else:
+                    return None
+        except Exception as e:
+            return None
+

@@ -28,7 +28,7 @@ bot = Bot(
     default=DefaultBotProperties(parse_mode=ParseMode.HTML)
 )
 
-    dp = Dispatcher()
+dp = Dispatcher()
 
     # Include routers
     dp.include_router(anime_router)

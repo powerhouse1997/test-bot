@@ -9,21 +9,23 @@ router = Router()
 async def cmd_anime(message: types.Message):
     args = message.text.split(maxsplit=1)
     if len(args) < 2:
-        await message.reply("Usage: /a <anime title>")
+        await message.reply("Usage: /a &lt;anime title&gt;", parse_mode="HTML")
         return
 
+    query = html.escape(args[1])
     results = await search_jikan("anime", args[1])
     if not results:
-        await message.reply("No anime found.")
+        await message.reply("No anime found.", parse_mode="HTML")
         return
 
     anime = results[0]
 
-    title = html.escape(anime['title'])
+    # Safely escape all dynamic content
+    title = html.escape(anime.get('title', 'Unknown'))
     synopsis = html.escape(anime.get('synopsis', ''))[:500]
-    score = anime.get('score', 'N/A')
-    episodes = anime.get('episodes', 'Unknown')
-    url = html.escape(anime['url'])
+    score = html.escape(str(anime.get('score', 'N/A')))
+    episodes = html.escape(str(anime.get('episodes', 'Unknown')))
+    url = html.escape(anime.get('url', '#'))
 
     caption = (
         f"🎬 <b>{title}</b>\n"

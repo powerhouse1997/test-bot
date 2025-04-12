@@ -9,9 +9,13 @@ def register_news(dp):
     @dp.message(Command("news"))
     async def cmd_news(message: types.Message):
         news_items = await fetch_anime_news()
+        
+        # If no news is available
         if not news_items:
             await message.reply("No news available right now.")
             return
+        
+        # Loop through the news items and send them
         for news in news_items:
             title = news.get('title', 'No title')
             url = news.get('url', '#')

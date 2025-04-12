@@ -3,6 +3,7 @@ from aiogram.filters import Command
 from jikan_api import search_jikan
 from aiogram import Router
 
+router = Router()
 
 def register_top(dp):
     @dp.message(Command("t"))

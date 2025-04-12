@@ -1,6 +1,8 @@
 from aiogram import types
 from aiogram.filters import Command
 from jikan_api import fetch_season_now
+from aiogram import Router
+
 
 def register_season(dp):
     @dp.message(Command("s"))

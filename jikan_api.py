@@ -28,3 +28,10 @@ async def fetch_anime_news():
     except Exception as e:
         print(f"Error fetching anime news: {e}")
         return []
+        
+async def fetch_season_now():
+    try:
+        return jikan.season()['anime']
+    except Exception as e:
+        print(f"Error fetching current season: {e}")
+        return []

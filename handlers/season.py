@@ -1,29 +1,27 @@
-from aiogram import types
+from aiogram import Router, types
 from aiogram.filters import Command
-from jikan_api import fetch_season_now
-from aiogram import Router
+from jikan_api import fetch_season_now  # This should work now
+from html import escape
 
 router = Router()
 
-def register_season(dp):
-    @dp.message(Command("s"))
-    async def cmd_season(message: types.Message):
-        results = await fetch_season_now()
-        if not results:
-            await message.reply("No seasonal anime found.")
-            return
+@router.message(Command("season"))
+async def cmd_season(message: types.Message):
+    data = await fetch_season_now()
+    if not data:
+        await message.reply("❌ Failed to fetch current season's anime.")
+        return
+    
+    caption = ""
+    for anime in data:
+        title = escape(anime.get("title", "Unknown"))
+        episodes = anime.get("episodes", "Unknown")
+        url = anime.get("url", "#")
+        synopsis = escape(anime.get("synopsis", "No synopsis available."))[:200]
 
-        for anime in results[:5]:
-            caption = (
-                f"📺 <b>{anime['title']}</b>\n"
-                f"⭐ Score: {anime.get('score', 'N/A')}\n"
-                f"🎬 Episodes: {anime.get('episodes', 'Unknown')}\n"
-                f"🔗 <a href='{anime['url']}'>More Info</a>\n\n"
-                f"{anime.get('synopsis', '')[:400]}..."
-            )
-            await message.bot.send_photo(
-                message.chat.id,
-                anime['images']['jpg']['large_image_url'],
-                caption=caption,
-                parse_mode="HTML"
-            )
+        caption += f"🎬 <b>{title}</b>\n"
+        caption += f"📺 Episodes: {episodes}\n"
+        caption += f"🔗 <a href='{url}'>More Info</a>\n\n"
+        caption += f"{synopsis}...\n\n"
+
+    await message.reply(caption, parse_mode="HTML")

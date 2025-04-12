@@ -37,7 +37,7 @@ anime_quotes = [
 async def fetch_anime_news():
     try:
         async with aiohttp.ClientSession() as session:
-            url = "https://api.jikan.moe/v4/news/anime"
+            url = "https://www.animenewsnetwork.com/all/rss.xml"
             async with session.get(url) as response:
                 if response.status == 200:
                     news = await response.json()

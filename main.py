@@ -1,25 +1,35 @@
+import logging
 import asyncio
 from aiogram import Bot, Dispatcher
+from aiogram.types import ParseMode
+from dotenv import load_dotenv
 from handlers.anime import register_anime
 from handlers.manga import register_manga
 from handlers.character import register_character
 from handlers.season import register_season
 from handlers.top import register_top
-from config import TOKEN
+from handlers.news import register_news
 
+# Load .env
+load_dotenv()
+
+# Initialize bot and dispatcher
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# Register all handlers
+# Register command handlers
 register_anime(dp)
 register_manga(dp)
 register_character(dp)
 register_season(dp)
 register_top(dp)
+register_news(dp)
 
-async def main():
-    await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(bot)
+# Main entry point for the bot
+async def on_start():
+    logging.basicConfig(level=logging.INFO)
+    await dp.start_polling()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(on_start())

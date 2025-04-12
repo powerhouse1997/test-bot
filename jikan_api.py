@@ -1,37 +1,34 @@
-from jikanpy import Jikan
+import aiohttp
 
-# Initialize Jikan object
-jikan = Jikan()
+BASE_URL = "https://api.jikan.moe/v4"
 
-async def search_jikan(endpoint, query, limit=1):
-    try:
-        if endpoint == 'anime':
-            return jikan.search('anime', query, page=1)['results'][:limit]
-        elif endpoint == 'manga':
-            return jikan.search('manga', query, page=1)['results'][:limit]
-        elif endpoint == 'characters':
-            return jikan.search('characters', query, page=1)['results'][:limit]
-        elif endpoint == 'season':
-            return jikan.season()  # For current season
-        elif endpoint == 'top':
-            return jikan.top('anime')  # Default top anime
-        return []
-    except Exception as e:
-        print(f"Error fetching data from Jikan: {e}")
-        return []
+async def search_jikan(type_: str, query: str):
+    url = f"{BASE_URL}/{type_}"
+    params = {"q": query, "limit": 1}
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, params=params) as resp:
+            if resp.status != 200:
+                print(f"Error fetching data from Jikan: HTTP {resp.status}")
+                return []
+            data = await resp.json()
+            return data.get("data", [])
 
-# Fetching anime news
-async def fetch_anime_news():
-    try:
-        news = jikan.news()  # Using jikanpy to fetch news
-        return news[:5]  # Get top 5 news items
-    except Exception as e:
-        print(f"Error fetching anime news: {e}")
-        return []
-        
-async def fetch_season_now():
-    try:
-        return jikan.season()['anime']
-    except Exception as e:
-        print(f"Error fetching current season: {e}")
-        return []
+async def get_top_anime():
+    url = f"{BASE_URL}/top/anime"
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            if resp.status != 200:
+                print(f"Error fetching top anime: HTTP {resp.status}")
+                return []
+            data = await resp.json()
+            return data.get("data", [])
+
+async def get_current_season():
+    url = f"{BASE_URL}/seasons/now"
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            if resp.status != 200:
+                print(f"Error fetching current season: HTTP {resp.status}")
+                return []
+            data = await resp.json()
+            return data.get("data", [])

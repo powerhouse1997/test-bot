@@ -236,6 +236,9 @@ async def cmd_anime_of_the_day(message: types.Message):
 
 # Start the bot
 async def main():
+    # Ensure webhook is deleted before starting polling
+    await bot.delete_webhook(drop_pending_updates=True)
+
     scheduler.add_job(send_trending_anime, 'interval', hours=6, args=[bot, CHAT_ID])
     scheduler.add_job(send_latest_news, 'interval', hours=4, args=[bot, CHAT_ID])
     scheduler.add_job(send_anime_countdown, 'cron', hour=9, args=[bot, CHAT_ID])

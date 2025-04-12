@@ -3,12 +3,12 @@ import logging
 import random
 import aiohttp
 import os
+import feedparser
 from aiogram import Bot, Dispatcher, types
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from dotenv import load_dotenv
-import feedparser
 
 # Load .env
 load_dotenv()
@@ -16,6 +16,7 @@ load_dotenv()
 # Your bot token and chat ID
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
+JIKAN_API_URL = os.getenv("JIKAN_API_URL", "https://api.jikan.moe/v4")
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -23,9 +24,6 @@ scheduler = AsyncIOScheduler()
 
 # Logging
 logging.basicConfig(level=logging.INFO)
-
-# Global leaderboard
-leaderboard = {}
 
 # Anime Quotes
 anime_quotes = [
@@ -35,11 +33,43 @@ anime_quotes = [
     "“Hard work is worthless for those that don’t believe in themselves.” – Naruto",
 ]
 
+# Jikan API fetching functions
+async def fetch_json(url):
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    return await response.json()
+                else:
+                    logging.error(f"Failed to fetch {url}: Status {response.status}")
+    except Exception as e:
+        logging.error(f"Exception while fetching {url}: {e}")
+    return None
+
+async def fetch_trending_anime():
+    data = await fetch_json(f"{JIKAN_API_URL}/top/anime")
+    if data:
+        return data.get('data', [])[:5]
+    return []
+
+async def fetch_countdown_anime():
+    data = await fetch_json(f"{JIKAN_API_URL}/seasons/upcoming")
+    if data:
+        return data.get('data', [])[:5]
+    return []
+
+async def fetch_random_anime():
+    data = await fetch_json(f"{JIKAN_API_URL}/random/anime")
+    if data:
+        return data.get('data')
+    return None
+
+# Anime News fetching from RSS
 async def fetch_anime_news():
     try:
         feed = feedparser.parse('https://www.animenewsnetwork.com/all/rss.xml?ann-edition=us')
         news_items = []
-        for entry in feed.entries[:5]:
+        for entry in feed.entries[:5]:  # take 5 latest news
             news_items.append({
                 'title': entry.title,
                 'url': entry.link,
@@ -50,61 +80,11 @@ async def fetch_anime_news():
         logging.error(f"Error fetching anime news: {e}")
     return []
 
-async def fetch_trending_anime():
-    try:
-        async with aiohttp.ClientSession() as session:
-            url = "https://api.jikan.moe/v4/top/anime"
-            async with session.get(url) as response:
-                if response.status == 200:
-                    trending = await response.json()
-                    return trending.get('data', [])[:5]
-    except Exception as e:
-        logging.error(f"Error fetching trending anime: {e}")
-    return []
-
-async def fetch_countdown_anime():
-    try:
-        async with aiohttp.ClientSession() as session:
-            url = "https://api.jikan.moe/v4/seasons/upcoming"
-            async with session.get(url) as response:
-                if response.status == 200:
-                    countdown = await response.json()
-                    return countdown.get('data', [])[:3]
-    except Exception as e:
-        logging.error(f"Error fetching countdown anime: {e}")
-    return []
-
-async def fetch_random_anime():
-    try:
-        async with aiohttp.ClientSession() as session:
-            url = "https://api.jikan.moe/v4/random/anime"
-            async with session.get(url) as response:
-                if response.status == 200:
-                    anime = await response.json()
-                    return anime.get('data', {})
-    except Exception as e:
-        logging.error(f"Error fetching random anime: {e}")
-    return {}
-
-async def send_latest_news(bot, chat_id):
-    news_items = await fetch_anime_news()
-    for news in news_items:
-        try:
-            title = news['title']
-            url = news['url']
-            date = news['published_at'][:10]
-            text = f"📰 <b><u>{title}</u></b>\n\n🗓️ Published: {date}\n🔗 <a href='{url}'>Read More</a>\n\n#AnimeNews #MangaUpdates"
-            await bot.send_message(chat_id, text, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
-            await asyncio.sleep(2)
-        except Exception as e:
-            logging.error(f"Error sending news: {e}")
-
+# Scheduler tasks to send anime updates
 async def send_trending_anime(bot, chat_id):
     trending = await fetch_trending_anime()
     if not trending:
         return
-    await update_leaderboard(trending)
-
     for anime in trending:
         try:
             title = anime['title']
@@ -145,44 +125,7 @@ async def send_anime_countdown(bot, chat_id):
         except Exception as e:
             logging.error(f"Error sending countdown: {e}")
 
-async def send_daily_quote(bot, chat_id):
-    quote = random.choice(anime_quotes)
-    await bot.send_message(chat_id, f"✨ <i>{quote}</i> ✨", parse_mode=ParseMode.HTML)
-
-async def send_guess_the_anime(bot, chat_id):
-    trending = await fetch_trending_anime()
-    if not trending:
-        return
-
-    anime = random.choice(trending)
-    options = [anime['title']] + [random.choice(trending)['title'] for _ in range(3)]
-    random.shuffle(options)
-
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    for opt in options:
-        markup.add(opt)
-
-    await bot.send_photo(
-        chat_id,
-        photo=anime['images']['jpg']['large_image_url'],
-        caption="🔎 <b>Guess the Anime!</b>",
-        reply_markup=markup,
-        parse_mode=ParseMode.HTML
-    )
-
-async def update_leaderboard(anime_list):
-    for anime in anime_list:
-        title = anime['title']
-        leaderboard[title] = leaderboard.get(title, 0) + 1
-
-async def show_leaderboard(chat_id):
-    top = sorted(leaderboard.items(), key=lambda x: x[1], reverse=True)[:5]
-    text = "🏆 <b><u>TOP 5 Trending Anime</u></b> 🏆\n\n"
-    for idx, (title, count) in enumerate(top, 1):
-        text += f"{idx}. {title} — {count} points\n"
-    await bot.send_message(chat_id, text, parse_mode=ParseMode.HTML)
-
-async def send_anime_of_the_day(bot, chat_id):
+async def send_random_anime(bot, chat_id):
     anime = await fetch_random_anime()
     if not anime:
         return
@@ -209,11 +152,20 @@ async def send_anime_of_the_day(bot, chat_id):
     except Exception as e:
         logging.error(f"Error sending Anime of the Day: {e}")
 
-# Bot command handlers
-@dp.message(Command("news"))
-async def cmd_news(message: types.Message):
-    await send_latest_news(bot, message.chat.id)
+async def send_anime_news(bot, chat_id):
+    news_items = await fetch_anime_news()
+    for news in news_items:
+        try:
+            title = news['title']
+            url = news['url']
+            date = news['published_at'][:10]
+            text = f"📰 <b><u>{title}</u></b>\n\n🗓️ Published: {date}\n🔗 <a href='{url}'>Read More</a>\n\n#AnimeNews #MangaUpdates"
+            await bot.send_message(chat_id, text, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+            await asyncio.sleep(2)
+        except Exception as e:
+            logging.error(f"Error sending news: {e}")
 
+# Bot command handlers
 @dp.message(Command("trend"))
 async def cmd_trend(message: types.Message):
     await send_trending_anime(bot, message.chat.id)
@@ -222,31 +174,24 @@ async def cmd_trend(message: types.Message):
 async def cmd_countdown(message: types.Message):
     await send_anime_countdown(bot, message.chat.id)
 
-@dp.message(Command("quote"))
-async def cmd_quote(message: types.Message):
-    await send_daily_quote(bot, message.chat.id)
+@dp.message(Command("random"))
+async def cmd_random(message: types.Message):
+    await send_random_anime(bot, message.chat.id)
 
-@dp.message(Command("guess"))
-async def cmd_guess(message: types.Message):
-    await send_guess_the_anime(bot, message.chat.id)
-
-@dp.message(Command("leaderboard"))
-async def cmd_leaderboard(message: types.Message):
-    await show_leaderboard(message.chat.id)
-
-@dp.message(Command("animeoftheday"))
-async def cmd_anime_of_the_day(message: types.Message):
-    await send_anime_of_the_day(bot, message.chat.id)
+@dp.message(Command("news"))
+async def cmd_news(message: types.Message):
+    await send_anime_news(bot, message.chat.id)
 
 # Start the bot
 async def main():
+    # Ensure webhook is deleted before starting polling
     await bot.delete_webhook(drop_pending_updates=True)
 
+    # Schedule regular tasks (e.g. sending updates every 6 hours)
     scheduler.add_job(send_trending_anime, 'interval', hours=6, args=[bot, CHAT_ID])
-    scheduler.add_job(send_latest_news, 'interval', hours=4, args=[bot, CHAT_ID])
     scheduler.add_job(send_anime_countdown, 'cron', hour=9, args=[bot, CHAT_ID])
-    scheduler.add_job(send_daily_quote, 'cron', hour=10, args=[bot, CHAT_ID])
-    scheduler.add_job(send_anime_of_the_day, 'cron', hour=12, args=[bot, CHAT_ID])
+    scheduler.add_job(send_random_anime, 'cron', hour=12, args=[bot, CHAT_ID])
+    scheduler.add_job(send_anime_news, 'interval', hours=4, args=[bot, CHAT_ID])
 
     scheduler.start()
     await dp.start_polling(bot)

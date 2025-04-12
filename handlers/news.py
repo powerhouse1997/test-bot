@@ -1,6 +1,8 @@
 from aiogram import types
 from aiogram.filters import Command
 from jikan_api import fetch_anime_news
+from aiogram import Router
+
 
 def register_news(dp):
     @dp.message(Command("news"))

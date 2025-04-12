@@ -8,6 +8,7 @@ from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from dotenv import load_dotenv
+import feedparser
 
 # Load .env
 load_dotenv()
@@ -34,13 +35,11 @@ anime_quotes = [
     "“Hard work is worthless for those that don’t believe in themselves.” – Naruto",
 ]
 
-import feedparser
-
 async def fetch_anime_news():
     try:
         feed = feedparser.parse('https://www.animenewsnetwork.com/all/rss.xml?ann-edition=us')
         news_items = []
-        for entry in feed.entries[:5]:  # take 5 latest news
+        for entry in feed.entries[:5]:
             news_items.append({
                 'title': entry.title,
                 'url': entry.link,
@@ -241,7 +240,6 @@ async def cmd_anime_of_the_day(message: types.Message):
 
 # Start the bot
 async def main():
-    # Ensure webhook is deleted before starting polling
     await bot.delete_webhook(drop_pending_updates=True)
 
     scheduler.add_job(send_trending_anime, 'interval', hours=6, args=[bot, CHAT_ID])

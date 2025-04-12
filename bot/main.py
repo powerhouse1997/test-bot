@@ -34,14 +34,19 @@ anime_quotes = [
     "“Hard work is worthless for those that don’t believe in themselves.” – Naruto",
 ]
 
+import feedparser
+
 async def fetch_anime_news():
     try:
-        async with aiohttp.ClientSession() as session:
-            url = "https://www.animenewsnetwork.com/all/rss.xml"
-            async with session.get(url) as response:
-                if response.status == 200:
-                    news = await response.json()
-                    return news.get('data', [])[:5]
+        feed = feedparser.parse('https://www.animenewsnetwork.com/all/rss.xml?ann-edition=us')
+        news_items = []
+        for entry in feed.entries[:5]:  # take 5 latest news
+            news_items.append({
+                'title': entry.title,
+                'url': entry.link,
+                'published': entry.published,
+            })
+        return news_items
     except Exception as e:
         logging.error(f"Error fetching anime news: {e}")
     return []

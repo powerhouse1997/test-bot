@@ -6,15 +6,16 @@ from html import escape
 
 router = Router()
 
+
 async def fetch_anime_news():
     url = "https://www.animenewsnetwork.com/all/rss.xml"
     feed = feedparser.parse(url)
 
     news_items = []
-    for entry in feed.entries[:5]:  # Limit to top 5
-        description = entry.get("description", "")
-        img_match = re.search(r'<img[^>]+src="([^"]+)"', description)
-        image_url = img_match.group(1) if img_match else None
+    for entry in feed.entries[:5]:
+        image_url = None
+        if 'media_content' in entry and len(entry.media_content) > 0:
+            image_url = entry.media_content[0].get('url')
 
         news_items.append({
             "title": entry.title,

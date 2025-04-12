@@ -1,9 +1,6 @@
-# jikan_api.py
-
 import aiohttp
 import feedparser
 import re
-from jikan_api import fetch_anime_news  # Assuming the function is in jikan_api.py
 
 # Define the fetch_season_now function here.
 async def fetch_season_now():

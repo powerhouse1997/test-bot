@@ -14,11 +14,12 @@ def register_character(dp):
             await message.reply("No character found.")
             return
         char = results[0]
-        caption = f"""👤 <b>{char['name']}</b>
-⭐ Favorites: {char.get('favorites', 'N/A')}
-🔗 <a href='{char['url']}'>More Info</a>
-
-{char.get('about', '')[:500]}..."""
+        caption = (
+            f"👤 <b>{char['name']}</b>\n"
+            f"⭐ Favorites: {char.get('favorites', 'N/A')}\n"
+            f"🔗 <a href='{char['url']}'>More Info</a>\n\n"
+            f"{char.get('about', '')[:500]}..."
+        )
         await message.bot.send_photo(
             message.chat.id,
             char['images']['jpg']['image_url'],

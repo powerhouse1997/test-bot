@@ -4,6 +4,8 @@ import asyncio
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from dotenv import load_dotenv
+from aiogram.client.default import DefaultBotProperties
+
 
 # Import routers from handlers
 from handlers.anime import router as anime_router
@@ -21,7 +23,11 @@ async def main():
     logging.basicConfig(level=logging.INFO)
 
     # Initialize bot and dispatcher
-    bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
+bot = Bot(
+    token=TOKEN,
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+)
+
     dp = Dispatcher()
 
     # Include routers

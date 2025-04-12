@@ -2,6 +2,8 @@ from aiogram import types
 from aiogram.filters import Command
 from jikan_api import search_jikan
 
+router = Router()
+
 def register_manga(dp):
     @dp.message(Command("m"))
     async def cmd_manga(message: types.Message):

@@ -1,7 +1,7 @@
 import logging
 import asyncio
 from aiogram import Bot, Dispatcher
-from aiogram import ParseMode
+from aiogram.utils.markdown import html_decoration
 from dotenv import load_dotenv
 from handlers.anime import register_anime
 from handlers.manga import register_manga

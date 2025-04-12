@@ -14,16 +14,15 @@ def register_manga(dp):
             await message.reply("No manga found.")
             return
         manga = results[0]
-        caption = (
-            f"📚 <b>{manga['title']}</b>
-"
-            f"⭐ Score: {manga.get('score', 'N/A')}
-"
-            f"📖 Chapters: {manga.get('chapters', 'Unknown')}
-"
-            f"🔗 <a href='{manga['url']}'>More Info</a>
+        caption = f"""📚 <b>{manga['title']}</b>
+⭐ Score: {manga.get('score', 'N/A')}
+📖 Chapters: {manga.get('chapters', 'Unknown')}
+🔗 <a href='{manga['url']}'>More Info</a>
 
-"
-            f"{manga.get('synopsis', '')[:500]}..."
+{manga.get('synopsis', '')[:500]}..."""
+        await message.bot.send_photo(
+            message.chat.id,
+            manga['images']['jpg']['large_image_url'],
+            caption=caption,
+            parse_mode="HTML"
         )
-        await message.bot.send_photo(message.chat.id, manga['images']['jpg']['large_image_url'], caption=caption, parse_mode="HTML")

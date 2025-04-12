@@ -17,8 +17,10 @@ from handlers.news import router as news_router
 load_dotenv()
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
-# Initialize bot and dispatcher
+# Initialize bot
 bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+
+# Initialize dispatcher with the bot instance
 dp = Dispatcher()
 
 # Register all routers
@@ -32,7 +34,7 @@ dp.include_router(news_router)
 # Entry point
 async def main():
     logging.basicConfig(level=logging.INFO)
-    await dp.start_polling()
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())

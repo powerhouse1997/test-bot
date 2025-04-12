@@ -1,6 +1,7 @@
 from aiogram import Router, types
 from aiogram.filters import Command
 from jikan_api import search_jikan
+from html import escape
 
 router = Router()
 

@@ -29,3 +29,16 @@ async def search_jikan(type: str, query: str):
                     return []
         except Exception as e:
             return []
+
+async def fetch_anime_news():
+    url = "https://api.jikan.moe/v4/news"
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data["data"]
+                else:
+                    return None
+        except Exception as e:
+            return None

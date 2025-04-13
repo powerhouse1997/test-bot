@@ -1,10 +1,14 @@
 # main.py
-import logging
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, F
 from aiogram.types import BotCommand
-from aiogram.utils.executor import start_polling
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from news_ann import schedule_ann_news
+from aiogram.client.session import aiohttp
+from aiogram.filters import Command
+from aiogram import Dispatcher
+from aiogram import types
+from aiogram import __version__ as aiogram_version
+from aiogram.types import ParseMode
+from aiogram import types
+from aiogram import Bot
 
 API_TOKEN = "TELEGRAM_BOT_TOKEN"
 CHAT_ID = CHAT_ID  # Your personal/group/channel chat ID

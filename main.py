@@ -5,8 +5,8 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from news_ann import schedule_ann_news
 import os
 
-API_TOKEN = os.getenv('TELEGRAM_API_TOKEN')  
-CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+API_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')  
+CHAT_ID = os.getenv('CHAT_ID')
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)

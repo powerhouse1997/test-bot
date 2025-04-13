@@ -26,7 +26,7 @@ bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
 
 # Scheduler setup
-scheduler = AsyncIOScheduler()
+
 
 # Function to send daily news
 async def send_daily_news():
@@ -60,6 +60,10 @@ scheduler.start()
 # Entry point
 async def main():
     logging.basicConfig(level=logging.INFO)
+     scheduler = AsyncIOScheduler()
+    scheduler.add_job(send_scheduled_news, "interval", hours=24, args=[bot])
+    scheduler.start()
+
     await dp.start_polling(bot)
 
 if __name__ == "__main__":

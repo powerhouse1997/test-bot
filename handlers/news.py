@@ -63,7 +63,13 @@ async def cmd_news(message: types.Message):
         date = escape(news.get("published_at", "No date"))
         thumbnail = news.get("thumbnail")
 
-        caption = f"📰 <b>{title}</b>\n🗓️ {date}\n🔗 <a href='{url}'>Read More</a>\n\n#AnimeNews #MangaUpdates"
+        caption = (
+                    f"<b>📰 {title}</b>\n"
+                    f"<i>📅 Published on:</i> <code>{date}</code>\n\n"
+                    f"🔗 <a href='{url}'>Click here to read the full article</a>\n\n"
+                    f"<b>#AnimeNews #MangaUpdates</b>"
+)
+
 
         if thumbnail:
             await message.bot.send_photo(message.chat.id, photo=thumbnail, caption=caption, parse_mode="HTML")

@@ -119,7 +119,7 @@ async def send_daily_news(bot: Bot):
     news_items = await fetch_anime_news()
     cache = load_cache()
 
-    chat_id = os.getenv("YOUR_CHAT_ID")  # Get chat ID from environment variable
+    chat_id = os.getenv("CHAT_ID")  # Get chat ID from environment variable
 
     if not chat_id:
         print("⚠️ Please set YOUR_CHAT_ID in .env file.")

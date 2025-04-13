@@ -1,3 +1,5 @@
+# news.py
+
 import os
 import json
 import re
@@ -109,3 +111,30 @@ async def cmd_news(message: types.Message, bot: Bot):
 
     # Save the updated cache
     save_cache(cache)
+
+# Send daily news using the same logic but without the command handler
+async def send_daily_news(bot: Bot):
+    news_items = await fetch_anime_news()
+    cache = load_cache()
+
+    chat_id = os.getenv("YOUR_CHAT_ID")  # Get chat ID from environment variable
+
+    if not chat_id:
+        print("⚠️ Please set YOUR_CHAT_ID in .env file.")
+        return
+
+    for news in news_items:
+        news_id = news.get("id")
+        if news_id in cache:
+            continue  # Already sent
+
+        caption = f"📰 <b>{escape(news['title'])}</b>\n🗓️ {escape(news['published_at'])}\n🔗 <a href='{news['url']}'>Read Full Article</a>\n\n#AnimeNews #MangaUpdates"
+
+        if news["thumbnail"]:
+            await bot.send_photo(chat_id, news["thumbnail"], caption=caption, parse_mode="HTML")
+        else:
+            await bot.send_message(chat_id, caption, parse_mode="HTML")
+
+        cache[news_id] = news["published_at"]
+
+    save_cache(cache)  # Save updated cache

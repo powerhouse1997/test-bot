@@ -1,7 +1,6 @@
 import logging
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand
-from aiogram.utils import executor
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from news_ann import schedule_ann_news
 
@@ -22,5 +21,5 @@ if __name__ == "__main__":
     # Setup logging for better debugging
     logging.basicConfig(level=logging.INFO)
 
-    # Start polling with custom startup logic
-    executor.start_polling(dp, on_startup=on_startup)
+    # Start polling directly using the Dispatcher
+    dp.start_polling(on_startup=on_startup)

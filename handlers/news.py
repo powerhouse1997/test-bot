@@ -63,14 +63,16 @@ async def cmd_news(message: types.Message):
         date = escape(news.get("published_at", "No date"))
         thumbnail = news.get("thumbnail")
 
-        caption = (
-                f"<b>🌟 {title}</b>\n\n"  # Bold title with a star to make it stand out
-                f"<i>📅 <u>Published on:</u></i> <code>{date}</code>\n\n"  # Italicized date with underline
-                f"<b>🚨 Latest Update:</b>\n\n"  # Stronger emphasis on the update
-                f"🔗 <a href='{url}'>Read Full Article</a>\n\n"  # Clear and bold call to action
-                f"<i>✨ <b>Stay ahead of the curve with the latest in anime and manga news!</b></i>\n\n"  # Motivating line
-                f"💬 <b>Share your thoughts below!</b>\n\n"  # Call to action for interaction
-                f"<b>#AnimeNews #MangaUpdates #Trending</b>\n\n"  # Additional hashtags for greater discoverability
+caption = (
+    f"<b>🌟 {title}</b>\n\n"
+    f"<i>📅 <u>Published on:</u></i> <code>{date}</code>\n\n"
+    f"<b>🚨 Latest Update:</b>\n\n"
+    f"🔗 <a href='{url}'>Read Full Article</a>\n\n"
+    f"<i>✨ Stay ahead of the curve with the latest in "
+    f"{'anime' if 'anime' in title.lower() else 'manga'} updates!</i>\n\n"  # Detect if anime or manga
+    f"💬 <b>Share your thoughts below!</b>\n\n"
+    f"<b>#{'AnimeNews' if 'anime' in title.lower() else 'MangaNews'} "
+    f"#Trending</b>\n\n"  # Dynamic hashtag based on the content
 )
 
 

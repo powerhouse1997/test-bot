@@ -1,27 +1,26 @@
-# main.py
-from aiogram import Bot, Dispatcher, F
+import logging
+from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand
-from aiogram.client.session import aiohttp
-from aiogram.filters import Command
-from aiogram import Dispatcher
-from aiogram import types
-from aiogram import __version__ as aiogram_version
-from aiogram.types import ParseMode
-from aiogram import types
-from aiogram import Bot
+from aiogram.utils import executor
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from news_ann import schedule_ann_news
 
-API_TOKEN = "TELEGRAM_BOT_TOKEN"
-CHAT_ID = CHAT_ID  # Your personal/group/channel chat ID
+API_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
+CHAT_ID = YOUR_CHAT_ID  # Your personal/group/channel chat ID
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
 scheduler = AsyncIOScheduler()
 
 async def on_startup(_):
+    # Schedule the news fetch and post job
     schedule_ann_news(scheduler, bot, CHAT_ID)
     scheduler.start()
     logging.info("Bot started and scheduler running")
 
 if __name__ == "__main__":
+    # Setup logging for better debugging
     logging.basicConfig(level=logging.INFO)
-    start_polling(dp, on_startup=on_startup)
+
+    # Start polling with custom startup logic
+    executor.start_polling(dp, on_startup=on_startup)

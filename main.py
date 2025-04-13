@@ -3,6 +3,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from news_ann import schedule_ann_news
+import os
 
 API_TOKEN = os.getenv('TELEGRAM_API_TOKEN')  
 CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')

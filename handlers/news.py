@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from aiogram import types, Router, Bot
 from aiogram.filters import Command
 from html import escape
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 router = Router()
 
@@ -120,6 +121,11 @@ async def send_daily_news(bot: Bot):
     cache = load_cache()
 
     chat_id = os.getenv("CHAT_ID")  # Get chat ID from environment variable
+
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(send_daily_news, "interval", hours=1, args=[bot])  # or minutes=15 for faster
+    scheduler.start()
+
 
     if not chat_id:
         print("⚠️ Please set YOUR_CHAT_ID in .env file.")

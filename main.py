@@ -13,7 +13,7 @@ from handlers.character import router as character_router
 from handlers.season import router as season_router
 from handlers.top import router as top_router
 from handlers.news import router as news_router
-from news import send_daily_news  # Import the scheduled news sender
+from handlers.news import send_daily_news  # Import the scheduled news sender
 
 # Load environment variables
 load_dotenv()

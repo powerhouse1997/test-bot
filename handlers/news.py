@@ -63,59 +63,26 @@ async def cmd_news(message: types.Message):
         date = escape(news.get("published_at", "No date"))
         thumbnail = news.get("thumbnail")
 
-caption = (
-    f"<b>🌟 {title}</b>\n\n"
-    f"<i>📅 <u>Published on:</u></i> <code>{date}</code>\n\n"
-    f"<b>🚨 Latest Update:</b>\n\n"
-    f"🔗 <a href='{url}'>Read Full Article</a>\n\n"
-    f"<i>✨ Stay ahead of the curve with the latest in "
-    f"{'anime' if 'anime' in title.lower() else 'manga'} updates!</i>\n\n"  # Detect if anime or manga
-    f"💬 <b>Share your thoughts below!</b>\n\n"
-    f"<b>#{'AnimeNews' if 'anime' in title.lower() else 'MangaNews'} "
-    f"#Trending</b>\n\n"  # Dynamic hashtag based on the content
-)
+        # Dynamic hashtags and engaging content
+        caption = (
+            f"📰 <b>{title}</b>\n\n"
+            f"<i>📅 <u>Published on:</u></i> <code>{formatted_date}</code>\n\n"
+            f"<b>🚨 Latest Update:</b>\n\n"
+            f"🔗 <a href='{url}'>Read Full Article</a>\n\n"
+            f"<i>✨ Stay ahead of the curve with the latest in "
+            f"{'anime' if 'anime' in title.lower() else 'manga'} updates!</i>\n\n"  # Detect anime or manga
+            f"💬 <b>Share your thoughts below!</b>\n\n"
+            f"<b>#{'AnimeNews' if 'anime' in title.lower() else 'MangaNews'} "
+            f"#Trending</b>\n\n"  # Dynamic hashtag based on the content
+        )
 
-
-if thumbnail:
-    await message.bot.send_photo(message.chat.id, photo=thumbnail, caption=caption, parse_mode="HTML")
-else:
-    await message.bot.send_message(message.chat.id, caption, parse_mode="HTML")
-
-# 💾 Cache to prevent duplicate posts
-CACHE_FILE = "sent_news_cache.json"
-
-def load_cache():
-    if os.path.exists(CACHE_FILE):
-        with open(CACHE_FILE, 'r') as file:
-            return json.load(file)
-    return {}
-
-def save_cache(cache):
-    with open(CACHE_FILE, 'w') as file:
-        json.dump(cache, file)
-
-# 🔁 Scheduled news sender
-async def send_daily_news(bot: Bot):
-    news_items = await fetch_anime_news()
-    cache = load_cache()
-    chat_id = os.getenv("YOUR_CHAT_ID")  # Put this in your .env
-
-    if not chat_id:
-        print("⚠️ Please set YOUR_CHAT_ID in .env file.")
-        return
-
-    for news in news_items:
-        news_id = news.get("id")
-        if news_id in cache:
-            continue  # Already sent
-
-        caption = f"📰 <b>{escape(news['title'])}</b>\n🗓️ {escape(news['published_at'])}\n🔗 <a href='{news['url']}'>Read More</a>\n\n#AnimeNews #MangaUpdates"
-
-        if news["thumbnail"]:
-            await bot.send_photo(chat_id, news["thumbnail"], caption=caption, parse_mode="HTML")
+        # Send the message with or without a thumbnail
+        if thumbnail:
+            await bot.send_photo(chat_id, thumbnail, caption=caption, parse_mode="HTML")
         else:
             await bot.send_message(chat_id, caption, parse_mode="HTML")
 
+        # Update cache to prevent re-sending the same news
         cache[news_id] = news["published_at"]
 
-    save_cache(cache)
+    save_cache(cache)  # Save updated cache

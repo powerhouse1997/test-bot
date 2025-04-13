@@ -123,7 +123,7 @@ async def send_daily_news(bot: Bot):
     chat_id = os.getenv("CHAT_ID")  # Get chat ID from environment variable
 
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(send_daily_news, "interval", hours=1, args=[bot])  # or minutes=15 for faster
+    scheduler.add_job(send_daily_news, "interval", minutes=5, args=[bot])  # or minutes=15 for faster
     scheduler.start()
 
 

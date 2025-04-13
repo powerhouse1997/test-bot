@@ -64,10 +64,13 @@ async def cmd_news(message: types.Message):
         thumbnail = news.get("thumbnail")
 
         caption = (
-                    f"<b>📰 {title}</b>\n"
-                    f"<i>📅 Published on:</i> <code>{date}</code>\n\n"
-                    f"🔗 <a href='{url}'>Click here to read the full article</a>\n\n"
-                    f"<b>#AnimeNews #MangaUpdates</b>"
+                f"<b>🌟 {title}</b>\n\n"  # Bold title with a star to make it stand out
+                f"<i>📅 <u>Published on:</u></i> <code>{date}</code>\n\n"  # Italicized date with underline
+                f"<b>🚨 Latest Update:</b>\n\n"  # Stronger emphasis on the update
+                f"🔗 <a href='{url}'>Read Full Article</a>\n\n"  # Clear and bold call to action
+                f"<i>✨ <b>Stay ahead of the curve with the latest in anime and manga news!</b></i>\n\n"  # Motivating line
+                f"💬 <b>Share your thoughts below!</b>\n\n"  # Call to action for interaction
+                f"<b>#AnimeNews #MangaUpdates #Trending</b>\n\n"  # Additional hashtags for greater discoverability
 )
 
 

@@ -1,48 +1,23 @@
+# main.py
 import logging
-import os
-import asyncio
-from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
-from aiogram.enums import ParseMode
-from aiogram.client.default import DefaultBotProperties
+from aiogram.types import BotCommand
+from aiogram.utils.executor import start_polling
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from news_ann import schedule_ann_news
 
-from handlers.anime import router as anime_router
-from handlers.manga import router as manga_router
-from handlers.character import router as character_router
-from handlers.season import router as season_router
-from handlers.top import router as top_router
-from handlers.news import router as news_router
-from handlers.news import send_daily_news  # Import the scheduled news sender
+API_TOKEN = "TELEGRAM_BOT_TOKEN"
+CHAT_ID = CHAT_ID  # Your personal/group/channel chat ID
 
-# Load environment variables
-load_dotenv()
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher(bot)
+scheduler = AsyncIOScheduler()
 
-# Initialize bot
-bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-
-# Initialize dispatcher with the bot instance
-dp = Dispatcher()
-
-# Register all routers
-dp.include_router(anime_router)
-dp.include_router(manga_router)
-dp.include_router(character_router)
-dp.include_router(season_router)
-dp.include_router(top_router)
-dp.include_router(news_router)
-
-# Entry point
-async def main():
-    logging.basicConfig(level=logging.INFO)
-
-    # Start scheduler
-    scheduler = AsyncIOScheduler()
-    scheduler.add_job(send_daily_news, "interval", hours=24, args=[bot])
+async def on_startup(_):
+    schedule_ann_news(scheduler, bot, CHAT_ID)
     scheduler.start()
-
-    await dp.start_polling(bot)
+    logging.info("Bot started and scheduler running")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    logging.basicConfig(level=logging.INFO)
+    start_polling(dp, on_startup=on_startup)

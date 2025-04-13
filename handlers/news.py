@@ -1,34 +1,54 @@
-import feedparser
+import os
+import json
 import re
-from aiogram import types, Router
+import feedparser
+import time
+from datetime import datetime, timedelta
+from aiogram import types, Router, Bot
 from aiogram.filters import Command
 from html import escape
-import json
-
 
 router = Router()
 
+# 🔎 Fetch anime news from AnimeNewsNetwork (only last 24h)
 async def fetch_anime_news():
     url = "https://www.animenewsnetwork.com/all/rss.xml"
     feed = feedparser.parse(url)
 
+    now = datetime.utcnow()
+    twenty_four_hours_ago = now - timedelta(hours=24)
+
     news_items = []
-    for entry in feed.entries[:5]:
-        # Try getting thumbnail from media content
+    for entry in feed.entries:
+        published_parsed = entry.get("published_parsed")
+        if not published_parsed:
+            continue
+
+        published_time = datetime.fromtimestamp(time.mktime(published_parsed))
+        if published_time < twenty_four_hours_ago:
+            continue
+
+        # Extract thumbnail
         image_url = None
         if "media_content" in entry:
             image_url = entry.media_content[0].get("url")
+        else:
+            desc = entry.get("description", "")
+            match = re.search(r'<img[^>]+src="([^"]+)"', desc)
+            if match:
+                image_url = match.group(1)
 
         news_items.append({
             "title": entry.title,
             "url": entry.link,
-            "published_at": entry.published,
-            "thumbnail": image_url
+            "published_at": published_time.strftime("%Y-%m-%d %H:%M UTC"),
+            "thumbnail": image_url,
+            "id": entry.link  # use URL as unique ID
         })
 
     return news_items
 
-
+# 🤖 /news command handler
 @router.message(Command("news"))
 async def cmd_news(message: types.Message):
     news_items = await fetch_anime_news()
@@ -38,10 +58,10 @@ async def cmd_news(message: types.Message):
         return
 
     for news in news_items:
-        title = escape(news.get('title', 'No title'))
-        url = news.get('url', '#')
-        date = escape(news.get('published_at', 'No date'))
-        thumbnail = news.get('thumbnail')
+        title = escape(news.get("title", "No title"))
+        url = news.get("url", "#")
+        date = escape(news.get("published_at", "No date"))
+        thumbnail = news.get("thumbnail")
 
         caption = f"📰 <b>{title}</b>\n🗓️ {date}\n🔗 <a href='{url}'>Read More</a>\n\n#AnimeNews #MangaUpdates"
 
@@ -50,46 +70,41 @@ async def cmd_news(message: types.Message):
         else:
             await message.bot.send_message(message.chat.id, caption, parse_mode="HTML")
 
-# Cache file to store sent news
+# 💾 Cache to prevent duplicate posts
 CACHE_FILE = "sent_news_cache.json"
 
-# Function to load cached headlines
 def load_cache():
     if os.path.exists(CACHE_FILE):
         with open(CACHE_FILE, 'r') as file:
             return json.load(file)
     return {}
 
-# Function to save cached headlines
 def save_cache(cache):
     with open(CACHE_FILE, 'w') as file:
         json.dump(cache, file)
 
-# Function to send daily news with cache check
-async def send_daily_news():
+# 🔁 Scheduled news sender
+async def send_daily_news(bot: Bot):
     news_items = await fetch_anime_news()
-    cache = load_cache()  # Load cached headlines
+    cache = load_cache()
+    chat_id = os.getenv("YOUR_CHAT_ID")  # Put this in your .env
 
-    if news_items:
-        for news in news_items:
-            title = news.get('title', 'No title')
-            url = news.get('url', '#')
-            date = news.get('published_at', 'No date')
-            image_url = news.get('image_url', None)
-            news_id = news.get('mal_id')  # Assuming mal_id is unique
+    if not chat_id:
+        print("⚠️ Please set YOUR_CHAT_ID in .env file.")
+        return
 
-            # Skip if already sent
-            if news_id in cache:
-                continue
+    for news in news_items:
+        news_id = news.get("id")
+        if news_id in cache:
+            continue  # Already sent
 
-            text = f"📰 <b>{title}</b>\n\n🗓️ Published: {date}\n🔗 <a href='{url}'>Read More</a>\n\n#AnimeNews #MangaUpdates"
-            chat_id = os.getenv("YOUR_CHAT_ID")  # Your chat ID here
-            await bot.send_message(chat_id, text, parse_mode="HTML", disable_web_page_preview=True)
-            if image_url:
-                await bot.send_photo(chat_id, image_url)
+        caption = f"📰 <b>{escape(news['title'])}</b>\n🗓️ {escape(news['published_at'])}\n🔗 <a href='{news['url']}'>Read More</a>\n\n#AnimeNews #MangaUpdates"
 
-            # Add to cache
-            cache[news_id] = title
+        if news["thumbnail"]:
+            await bot.send_photo(chat_id, news["thumbnail"], caption=caption, parse_mode="HTML")
+        else:
+            await bot.send_message(chat_id, caption, parse_mode="HTML")
 
-        # Save updated cache
-        save_cache(cache)
+        cache[news_id] = news["published_at"]
+
+    save_cache(cache)

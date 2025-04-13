@@ -76,10 +76,10 @@ caption = (
 )
 
 
-        if thumbnail:
-            await message.bot.send_photo(message.chat.id, photo=thumbnail, caption=caption, parse_mode="HTML")
-        else:
-            await message.bot.send_message(message.chat.id, caption, parse_mode="HTML")
+if thumbnail:
+    await message.bot.send_photo(message.chat.id, photo=thumbnail, caption=caption, parse_mode="HTML")
+else:
+    await message.bot.send_message(message.chat.id, caption, parse_mode="HTML")
 
 # 💾 Cache to prevent duplicate posts
 CACHE_FILE = "sent_news_cache.json"

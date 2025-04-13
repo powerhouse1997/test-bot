@@ -4,8 +4,8 @@ from aiogram.types import BotCommand
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from news_ann import schedule_ann_news
 
-API_TOKEN = "TELEGRAM_BOT_TOKEN"
-CHAT_ID = CHAT_ID  # Your personal/group/channel chat ID
+API_TOKEN = os.getenv('TELEGRAM_API_TOKEN')  
+CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)

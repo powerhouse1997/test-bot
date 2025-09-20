@@ -1,13 +1,4 @@
-requests
 python-telegram-bot
-feedparser
-aiohttp
-beautifulsoup4
-apscheduler
-python-dotenv
-fastapi
-uvicorn
-pytz
-python-dateutil
-aiogram
-jikanpy
+cloudinary
+Flask
+gunicorn
